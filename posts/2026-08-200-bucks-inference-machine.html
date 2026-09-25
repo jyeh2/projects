@@ -2,6 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>200 Bucks Inference Machine</title>
   <link rel="stylesheet" href="../assets/style.css">
 </head>
@@ -15,6 +16,7 @@
 
     <p class="meta">
       A local LLM inference server built on secondhand mining hardware, running full GPU-resident inference for around $200 in parts.
+      Updated September 2026: down to one card, new model, and first KV-cache experiments.
     </p>
 
     <h2>Overview</h2>
@@ -29,15 +31,17 @@
     <h2>Hardware</h2>
 
     <p>
-      The board is a Huananzhi X99 BD4, paired with two CMP 40HX cards (TU106, compute capability <code>sm_75</code>,
-      8GB VRAM each). CMP cards ship without display output and with reduced driver support since they were designed
+      The board is a Huananzhi X99 BD4, originally paired with two CMP 40HX cards (TU106, compute capability
+      <code>sm_75</code>, 8GB VRAM each). One of the two cards has since died, so the machine now runs on a single
+      8GB card, with only 7.7GB of system RAM next to it. Everything below was sized around that. CMP cards ship without display output and with reduced driver support since they were designed
       for mining, not compute workloads, so getting them recognized properly took some work.
     </p>
 
     <p>
       One of the bigger hardware fixes was a PCIe lane negotiation issue. The cards were not initially negotiating
       full x16, which capped throughput. AC coupling capacitors soldered directly onto the PCIe lanes resolved this
-      and unlocked full x16 negotiation on both cards.
+      and unlocked full x16 negotiation on both cards. Measured on this machine, model load time dropped
+      <strong>46%</strong>.
     </p>
 
     <p>
@@ -45,6 +49,14 @@
       300 MHz when the cards are not in use, bringing idle draw down to around 12 to 15 watts. Before running
       inference, clocks need to be manually reset with <code>nvidia-smi -rgc</code>, otherwise the locked clock
       caps performance.
+    </p>
+
+    <p>
+      Forgetting that step is expensive. In one session the GPU showed 100% utilization but sat at 300 MHz and 35W,
+      processing prompts at about 18 tokens per second. Once the clock came up to 1935 MHz, the same work ran at about
+      190 tokens per second, roughly 10x faster. A 15.6k-token agent prompt went from an estimated 17 minutes before the first
+      token to about 80 seconds. <code>nvidia-smi dmon -s uc</code> is the quick check: if <code>pclk</code> reads
+      300 under load, the cap is still on.
     </p>
 
     <a href="#img1"><img src="../assets/inference-machine/setup.jpg" alt="Two CMP 40HX mining GPUs mounted on the Huananzhi X99 BD4 motherboard"></a>
@@ -65,9 +77,22 @@
     </p>
 
     <p>
-      The server runs <code>qwen3:8b</code> through <code>mistral.rs</code> behind an OpenAI-compatible endpoint.
-      Context is tuned to 32,768 tokens, chosen specifically so the full model and context fit in GPU memory without
-      offloading, keeping everything resident on the two 8GB cards.
+      The server originally ran <code>qwen3:8b</code> through <code>mistral.rs</code> behind an OpenAI-compatible
+      endpoint, with context tuned to 32,768 tokens so the model and context stayed resident across the two 8GB cards.
+    </p>
+
+    <p>
+      With one card left, it now serves <strong>Gemma 4 E4B</strong> through Ollama (llama.cpp). An 8B model plus a
+      useful context no longer fits in 8GB, and Gemma 4 E4B suits the constraint well. About 4B parameters are
+      active, and a large per-layer embedding table stays in system RAM instead of VRAM. Most layers use sliding-window
+      attention, so its KV cache is small: the full 131k context costs about 2GB. Measured on this card with the
+      clock up: about 220 tokens per second of prompt processing and 36 tokens per second of generation.
+    </p>
+
+    <p>
+      Picking it wasn't a guess. I benchmarked it against Qwen3.5 4B, Qwen3 8B and Qwen2.5 3B on a structured
+      extraction task, and it beat all three on precision, including the model twice its size.
+      <a href="2026-09-local-llm-extraction-benchmark.html">Full write-up with charts.</a>
     </p>
 
     <a href="#img2"><img src="../assets/inference-machine/nvidia-smi.jpg" alt="nvidia-smi output showing a recognized CMP 40HX"></a>
@@ -76,9 +101,54 @@
     <h2>What it powers</h2>
 
     <p>
-      On top of the inference endpoint sits OpenClaw, a personal agent built for practical daily use rather than as
-      a demo. It handles email triage, calendar management, and job application tracking, all running against the
-      local model instead of a hosted API.
+      The machine first hosted OpenClaw, a personal agent for email triage, calendar management, and job application
+      tracking. That turned out to be a poor fit for one small card. OpenClaw sends a ~15.6k-token system prompt on
+      every agent step, and llama.cpp couldn't reuse its cache between steps on Gemma's sliding-window layers. So each
+      step paid about 80 seconds of prompt processing before producing anything, and the agent's own watchdog aborted
+      runs when the clock was stuck.
+    </p>
+
+    <p>
+      I dropped the agent and gave the model a narrower job it does well: <strong>schema-constrained
+      extraction</strong>. It reads a document, fills a fixed JSON schema, and backs each claim with a verbatim quote
+      that ordinary code checks against the source. The model extracts facts; code decides what to do with them.
+    </p>
+
+    <h2>KV cache snapshots</h2>
+
+    <p>
+      That 80-second prompt cost is the problem I'm now working on directly. <code>llama-server</code> can save a
+      slot's KV cache to disk and restore it later. So a long shared prefix could be processed once and reloaded in
+      milliseconds, instead of being recomputed on every request. The first experiment, on a 15,600-token prefix:
+    </p>
+
+    <div class="table-wrap"><table class="data">
+      <thead>
+        <tr><th></th><th>Gemma 4 E4B, default</th><th>Gemma 4 E4B, <code>--swa-full</code></th><th>Qwen2.5 3B, default</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Cold time to first token</td><td>85 s</td><td>119 s</td><td>83 s</td></tr>
+        <tr><td>Warm time to first token (restore + new tokens)</td><td>85.6 s (restore discarded)</td><td><strong>0.29–0.34 s</strong></td><td><strong>0.44–0.45 s</strong></td></tr>
+        <tr><td>Snapshot on disk</td><td>264 MiB</td><td>264 MiB</td><td>549 MiB</td></tr>
+        <tr><td>Restore time</td><td>169 ms</td><td>169 ms</td><td>280–300 ms</td></tr>
+      </tbody>
+    </table></div>
+
+    <p>
+      On a normal full-attention model (Qwen2.5 3B) it works out of the box. Gemma is harder: its sliding-window
+      layers keep only the last ~1,024 tokens in a ring buffer, and after a restore the server logs
+      <code>forcing full prompt re-processing ... (likely due to SWA)</code> and throws the cache away. With
+      <code>--swa-full</code> (sliding-window layers keep their full history) the restore holds and time to first
+      token falls from 119 s to 0.3 s. That costs 1.3GB more VRAM at 32k context and slower cold runs. Part of the cold-run
+      gap may be the GPU clock, which I haven't separated out yet.
+    </p>
+
+    <p>
+      The next step is a C++ proxy in front of <code>llama-server</code> that treats these snapshots like a small
+      storage engine. It will hash prompt prefixes into a radix tree, keep content-addressed snapshot files with an
+      append-only index, tier them between RAM and SSD, and evict by recompute cost against size. The open question is
+      whether saving just the sliding-window state at the prefix boundary can avoid <code>--swa-full</code>
+      entirely.
     </p>
 
     <h2>Community context</h2>
@@ -122,9 +192,10 @@
     <p>
       Off the shelf cloud inference is fast to set up but sends everything, including sensitive or proprietary
       data, off device. This project exists to prove that a genuinely usable local setup is achievable on a tight
-      budget using hardware most people would consider unsuitable for the job. Two mining cards not designed for
+      budget using hardware most people would consider unsuitable for the job. Mining cards not designed for
       this workload, a patched build, and a few soldered joints turned into a machine that runs a real model at
-      real context length, entirely under local control.
+      real context length, entirely under local control. Losing a card cost capacity, not usefulness: one 8GB card
+      still runs a model that beat an 8B competitor on the work I actually give it.
     </p>
 
     <h2>References</h2>

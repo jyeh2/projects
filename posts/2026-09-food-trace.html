@@ -1,0 +1,187 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FoodTrace</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+
+<body>
+  <div class="container">
+
+    <a href="../index.html">← back</a>
+
+    <h1>FoodTrace: farm-to-shelf provenance on Solana</h1>
+
+    <p class="meta">
+      A two-day hackathon build (September 2026) with a five-person team. Each batch of produce becomes an NFT, and
+      each handoff along the supply chain writes a photo fingerprint to it on-chain.
+      <a href="https://foodtrace.oliverchou.dev/verify/demo">Live demo</a> ·
+      <a href="https://github.com/jyeh2/Food-Trace">Source</a>
+    </p>
+
+    <h2>The problem</h2>
+
+    <p>
+      A label that says "organic, from Green Valley Farm" is a claim, and the shopper has no way to check it. Supply
+      chain records usually live in each company's own database, so anyone along the chain can edit their part after the fact.
+      FoodTrace tries to make three things checkable by anyone holding the product:
+    </p>
+
+    <ul>
+      <li><strong>Who</strong> handled the batch at each stage (farm, processing, distribution, retail).</li>
+      <li>That they were <strong>physically at the station</strong> when they recorded it.</li>
+      <li>That the <strong>photo and details</strong> they recorded haven't been changed since.</li>
+    </ul>
+
+    <a href="#img1"><img src="../assets/food-trace/architecture.jpg" alt="FoodTrace architecture: farmer mints a batch, station shows a rotating QR, phone scans and takes a photo, the hash goes to a Solana NFT, and a consumer verifies. Backed by a Next.js API, Cloudflare D1 and an AI report agent."></a>
+    <a class="lightbox" id="img1" href="#"><img src="../assets/food-trace/architecture.jpg" alt="FoodTrace architecture diagram"></a>
+
+    <h2>How it works</h2>
+
+    <h3>1. A farmer mints the batch</h3>
+
+    <p>
+      A farmer org logs in, names the product, and sets a location. The server mints a
+      <strong>Metaplex Core NFT</strong> on Solana (devnet) for the batch. Its on-chain <em>Attributes</em> plugin
+      starts with the batch ID, origin and creation time. The app prints a product QR code that points at the batch.
+    </p>
+
+    <h3>2. Each station shows a rotating code</h3>
+
+    <p>
+      Every stage has a station screen (<code>/station/1</code> to <code>/station/4</code>) showing a QR code that
+      changes every 90 seconds. The code is a TOTP-style HMAC: <code>HMAC-SHA256(secret, "stage:counter")</code>,
+      where the counter is the current 90-second window, truncated to 8 hex characters. The server accepts the current
+      window and one on either side, to allow for clock drift and a slow scan, and compares codes in constant time.
+    </p>
+
+    <p>
+      A code is only valid for a few minutes, so a photo of the QR taken last week is useless. To record a stage,
+      you have to be standing in front of the station screen. It's a cheap proof of presence with no special
+      hardware.
+    </p>
+
+    <h3>3. A worker scans, photographs, submits</h3>
+
+    <p>
+      On their phone, a worker at the next org scans the station QR, then the product QR, then takes a photo of the
+      shipment. Before submitting, a vision model checks the photo plausibly shows the claimed produce, even in boxes
+      or crates. A hash only proves a photo hasn't been edited; it says nothing about what's in the frame.
+    </p>
+
+    <p>The server then checks, in order:</p>
+
+    <ul>
+      <li>the org is logged in, and its <strong>role</strong> may record this stage (farmers record stage 1, processors
+        stage 2, and so on);</li>
+      <li>the station code is valid for this stage right now;</li>
+      <li>stages happen <strong>in order</strong>: you can't record retail before distribution.</li>
+    </ul>
+
+    <p>
+      If everything passes, the server computes <code>sha256</code> of the photo bytes. It also takes a snapshot of the org as it is
+      at that moment: role, certifications, location, and role-specific details like farming practice or refrigeration
+      type. The server hashes that snapshot too. The photo goes to Cloudflare R2 and the row to Cloudflare D1.
+    </p>
+
+    <h3>4. The fingerprint goes on-chain</h3>
+
+    <p>
+      The server appends an attribute to the batch NFT: <code>stage:N = photoHash|timestamp|actor|snapshotHash</code>.
+      The NFT becomes an append-only log of the batch's journey. The server refuses to write a stage that's already
+      on-chain, so a later edit shows up as a mismatch rather than a quiet overwrite.
+    </p>
+
+    <p>
+      Solana confirmation from a Cloudflare Worker can take long enough that the transaction's blockhash expires
+      first. So the submit returns immediately with a "pending" stage, and the chain write runs in the background.
+      It retries with a fresh blockhash if it expires. If a retry fails but the attribute turns out to be on-chain
+      anyway (the transaction landed before the confirmation timed out), it counts as a success.
+    </p>
+
+    <h3>5. Anyone can verify</h3>
+
+    <p>
+      Scanning the product QR opens a public <code>/verify/&lt;batch&gt;</code> page, with no account needed. For each stage it:
+    </p>
+
+    <ul>
+      <li>downloads the stored photo from R2 and <strong>re-hashes it</strong>;</li>
+      <li>reads the NFT's attributes <strong>directly from Solana</strong>;</li>
+      <li>compares the two, and does the same for the org snapshot hash.</li>
+    </ul>
+
+    <p>
+      If someone swaps a photo or edits a certification in the database, the hashes stop matching and the badge
+      flips. The page also draws the batch's route on a journey map from the recorded locations, and links each stage
+      to its transaction on a Solana explorer.
+    </p>
+
+    <a href="#img2"><img class="fig-top" src="../assets/food-trace/verify-demo.jpg" alt="FoodTrace verify page for a demo batch of organic tomatoes: 4 of 4 stages recorded, 4 of 4 photos match their blockchain fingerprints, and a journey map below"></a>
+    <a class="lightbox" id="img2" href="#"><img src="../assets/food-trace/verify-demo.jpg" alt="FoodTrace verify page for a demo batch"></a>
+
+    <h3>6. An AI product report</h3>
+
+    <p>
+      Each batch also gets a shareable product report. A tool-calling agent (Vercel AI SDK, IFM's K2 model) reads the
+      batch, stages, org profiles and on-chain attributes through read-only tools. It then writes a
+      <strong>schema-checked</strong> JSON report (Zod): a consumer-friendly origin story and journey, plus an
+      auditor appendix with every hash and transaction. The prompt forbids inventing stages, orgs or hashes.
+    </p>
+
+    <p>
+      Reports are cached in D1 under a <code>sha256</code> fingerprint of their inputs. The fingerprint covers only public
+      fields, and tests check that secret org fields never enter it. A report is regenerated only when the batch
+      actually changes. Generation streams the agent's tool calls to the page as it runs, so you can watch it work.
+    </p>
+
+    <h2>Stack</h2>
+
+    <ul>
+      <li><strong>App:</strong> Next.js, deployed to Cloudflare Workers through OpenNext; GitHub Actions runs lint,
+        tests and deploy on every push to <code>main</code>.</li>
+      <li><strong>Data:</strong> Cloudflare D1 (SQLite) for orgs, batches, stages and cached reports; R2 for photos.</li>
+      <li><strong>Chain:</strong> Solana devnet, Metaplex Core via Umi. Public devnet RPC returns 403 to Cloudflare
+        Workers, so it uses MagicBlock's devnet RPC by default.</li>
+      <li><strong>AI:</strong> a vision model through OpenRouter for photo checks, and IFM K2 for reports.</li>
+    </ul>
+
+    <h2>My part</h2>
+
+    <p>
+      My main contribution was the <strong>org and permissions layer</strong>:
+    </p>
+
+    <ul>
+      <li><strong>Org accounts</strong> with role-based permissions: which role can mint a batch and which stage each
+        role may record, including splitting the original "supplier" role into processor and distributor.</li>
+      <li><strong>Org snapshots:</strong> copying the org's location and role-specific fields onto each stage when it's
+        recorded, and putting the snapshot's hash on-chain next to the photo hash. A later edit to an org's profile
+        can't rewrite history, and the verify page can prove it.</li>
+      <li>Replacing station display keys with a station picker in the UI, gating the dashboard behind login, and a
+        batch of mobile and dark-mode fixes for the scan flow.</li>
+    </ul>
+
+    <p>
+      Teammates built the D1/R2 migration, the Cloudflare deploy, the Solana retry and recovery logic, the report
+      agent, the customer journey map, and the photo validation.
+    </p>
+
+    <h2>What I'd change</h2>
+
+    <ul>
+      <li><strong>Proof of presence is only as good as the station screen.</strong> Anyone who can see the screen, or
+        a live photo of it, can record a stage. Signing with a key held by the station device, or checking phone GPS
+        against the station's location, would tighten it.</li>
+      <li><strong>The server signs everything.</strong> One server keypair writes every stage, so the chain proves
+        the <em>server</em> recorded a hash, not which org did. Having each org sign its own stage would remove that
+        trust in the operator.</li>
+      <li><strong>A full-list replace per stage.</strong> Each update rewrites the whole attribute list. That's fine
+        for four stages, but a real supply chain would want an append-only account or compressed records.</li>
+    </ul>
+
+  </div>
+</body>
+</html>

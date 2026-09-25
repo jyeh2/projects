@@ -1,0 +1,365 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Four Small LLMs on an 8GB Card</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+
+<body>
+  <div class="container">
+
+    <a href="../index.html">← back</a>
+
+    <h1>Four small LLMs, one 8GB mining card: which one reads a job posting best?</h1>
+
+    <p class="meta">
+      Gemma 4 E4B, Qwen3.5 4B, Qwen3 8B and Qwen2.5 3B, benchmarked on structured extraction over 78 hand-labeled
+      documents, all running on the <a href="2026-08-200-bucks-inference-machine.html">200 Bucks Inference Machine</a>.
+      September 2026.
+    </p>
+
+    <h2>The short version</h2>
+
+    <p>
+      Gemma 4 E4B won. It had the best precision of the four (95%), tied for the best recall (97%), and made the
+      fewest false alarms on every flag. The biggest model, Qwen3 8B, caught just as much but flagged far too
+      often, ran slowest, and nearly filled the card. Qwen2.5 3B wasn't usable for this task.
+    </p>
+
+    <div class="table-wrap"><table class="data">
+      <thead>
+        <tr><th>Rank</th><th>Model</th><th>Precision</th><th>Recall</th><th>Median time</th><th>GPU memory</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td><strong>Gemma 4 E4B</strong></td><td><strong>95%</strong> (60/63)</td><td><strong>97%</strong> (60/62)</td><td>27 s</td><td>~4.4 GB</td></tr>
+        <tr><td>2</td><td>Qwen3.5 4B</td><td>83% (59/71)</td><td>95% (59/62)</td><td>20 s</td><td>~3.6 GB</td></tr>
+        <tr><td>3</td><td>Qwen3 8B</td><td>63% (60/95)</td><td><strong>97%</strong> (60/62)</td><td>39 s</td><td>~6.8 GB</td></tr>
+        <tr><td>4</td><td>Qwen2.5 3B</td><td>43% (46/107)</td><td>74% (46/62)</td><td>15 s</td><td>~2.6 GB</td></tr>
+      </tbody>
+    </table></div>
+
+    <h2>The task</h2>
+
+    <p>
+      Each model reads one internship posting and fills in a fixed JSON schema with five yes/no eligibility flags:
+    </p>
+
+    <ul>
+      <li><strong>U.S. citizenship required.</strong> A work-authorization, export-control or "U.S. person" line doesn't count.</li>
+      <li><strong>Undergrad only.</strong> A posting that also takes Master's students doesn't count.</li>
+      <li><strong>PhD only.</strong></li>
+      <li><strong>No visa sponsorship.</strong></li>
+      <li><strong>Security clearance required.</strong></li>
+    </ul>
+
+    <p>
+      For every flag it sets, the model also has to copy one sentence from the posting, word for word, as evidence.
+      A short Python check then looks for that sentence in the posting text, ignoring whitespace and curly quotes.
+      <strong>A flag only counts if its quote is really there.</strong> The model extracts; ordinary code decides.
+    </p>
+
+    <p>
+      This is a good fit for a small local model: the postings are 1–6k tokens, the output is tightly constrained, and
+      nothing here needs outside knowledge. It's also a good test of whether a model can follow a definition
+      ("a no-sponsorship line is <em>not</em> a citizenship requirement") instead of matching keywords.
+    </p>
+
+    <h2>Setup</h2>
+
+    <ul>
+      <li><strong>Hardware:</strong> one NVIDIA CMP 40HX (Turing, 8 GB) in the X99 box, clocks locked high. The machine
+        has only 7.7 GB of system RAM, which becomes important below.</li>
+      <li><strong>Serving:</strong> Ollama, with its JSON-schema structured output (<code>format</code>),
+        temperature 0, a 12k-token context, and "thinking" turned off on Gemma and Qwen3/3.5 so the comparison measures
+        one direct answer from each model.</li>
+      <li><strong>Data:</strong> 70 real postings, rendered in headless Chrome, plus 8 test copies where I added a
+        citizenship sentence in different wordings ("sole U.S. citizenship", "Only United States citizens are
+        eligible…", "requires U.S. citizenship because of government contract requirements", and so on). That's 78
+        documents in all.</li>
+      <li><strong>Answer key:</strong> labeled by hand from the posting text, not from any model's output. The positives:
+        8 citizenship, 14 undergrad-only, 39 no-sponsorship, 1 clearance, 0 PhD-only. The postings also include
+        deliberate traps, such as Waymo's export-control text, Medline's "permanent work authorization" line, and
+        SingleStore's "sponsorship <em>is</em> available".</li>
+      <li><strong>Runs:</strong> one pass per model over all 78, one model loaded at a time.</li>
+    </ul>
+
+    <h2>Results</h2>
+
+    <h3>Accuracy</h3>
+
+    <figure class="chart"><svg viewBox="0 -14 720 368" role="img" aria-label="Precision and recall by model. Gemma 4 E4B: 95% precision, 97% recall. Qwen3.5 4B: 83%, 95%. Qwen3 8B: 63%, 97%. Qwen2.5 3B: 43%, 74%." xmlns="http://www.w3.org/2000/svg">
+<text x="0" y="0" class="ptitle">Precision: share of flags raised that were correct</text>
+<line x1="110.0" y1="10" x2="110.0" y2="142" class="grid"/>
+<text x="110.0" y="156" class="tick" text-anchor="middle">0%</text>
+<line x1="245.0" y1="10" x2="245.0" y2="142" class="grid"/>
+<text x="245.0" y="156" class="tick" text-anchor="middle">25%</text>
+<line x1="380.0" y1="10" x2="380.0" y2="142" class="grid"/>
+<text x="380.0" y="156" class="tick" text-anchor="middle">50%</text>
+<line x1="515.0" y1="10" x2="515.0" y2="142" class="grid"/>
+<text x="515.0" y="156" class="tick" text-anchor="middle">75%</text>
+<line x1="650.0" y1="10" x2="650.0" y2="142" class="grid"/>
+<text x="650.0" y="156" class="tick" text-anchor="middle">100%</text>
+<text x="100" y="29.0" class="lab" text-anchor="end">Gemma 4 E4B</text>
+<g class="mark"><title>Gemma 4 E4B: 95.2% (60 correct, 3 false alarms, 2 missed)</title><path d="M110,14 H620.2857142857142 Q624.2857142857142,14 624.2857142857142,18 V32 Q624.2857142857142,36 620.2857142857142,36 H110 Z" fill="#3987e5"/><rect x="110" y="11" width="584.2857142857142" height="28" fill="transparent"/></g>
+<text x="630.2857142857142" y="29.0" class="val">95%</text>
+<text x="100" y="61.0" class="lab" text-anchor="end">Qwen3.5 4B</text>
+<g class="mark"><title>Qwen3.5 4B: 83.1% (59 correct, 12 false alarms, 3 missed)</title><path d="M110,46 H554.7323943661972 Q558.7323943661972,46 558.7323943661972,50 V64 Q558.7323943661972,68 554.7323943661972,68 H110 Z" fill="#d95926"/><rect x="110" y="43" width="518.7323943661972" height="28" fill="transparent"/></g>
+<text x="564.7323943661972" y="61.0" class="val">83%</text>
+<text x="100" y="93.0" class="lab" text-anchor="end">Qwen3 8B</text>
+<g class="mark"><title>Qwen3 8B: 63.2% (60 correct, 35 false alarms, 2 missed)</title><path d="M110,78 H447.05263157894734 Q451.05263157894734,78 451.05263157894734,82 V96 Q451.05263157894734,100 447.05263157894734,100 H110 Z" fill="#199e70"/><rect x="110" y="75" width="411.05263157894734" height="28" fill="transparent"/></g>
+<text x="457.05263157894734" y="93.0" class="val">63%</text>
+<text x="100" y="125.0" class="lab" text-anchor="end">Qwen2.5 3B</text>
+<g class="mark"><title>Qwen2.5 3B: 43.0% (46 correct, 61 false alarms, 16 missed)</title><path d="M110,110 H338.14953271028037 Q342.14953271028037,110 342.14953271028037,114 V128 Q342.14953271028037,132 338.14953271028037,132 H110 Z" fill="#c98500"/><rect x="110" y="107" width="302.14953271028037" height="28" fill="transparent"/></g>
+<text x="348.14953271028037" y="125.0" class="val">43%</text>
+<text x="0" y="190" class="ptitle">Recall: share of true requirements caught</text>
+<line x1="110.0" y1="200" x2="110.0" y2="332" class="grid"/>
+<text x="110.0" y="346" class="tick" text-anchor="middle">0%</text>
+<line x1="245.0" y1="200" x2="245.0" y2="332" class="grid"/>
+<text x="245.0" y="346" class="tick" text-anchor="middle">25%</text>
+<line x1="380.0" y1="200" x2="380.0" y2="332" class="grid"/>
+<text x="380.0" y="346" class="tick" text-anchor="middle">50%</text>
+<line x1="515.0" y1="200" x2="515.0" y2="332" class="grid"/>
+<text x="515.0" y="346" class="tick" text-anchor="middle">75%</text>
+<line x1="650.0" y1="200" x2="650.0" y2="332" class="grid"/>
+<text x="650.0" y="346" class="tick" text-anchor="middle">100%</text>
+<text x="100" y="219.0" class="lab" text-anchor="end">Gemma 4 E4B</text>
+<g class="mark"><title>Gemma 4 E4B: 96.8% (60 correct, 3 false alarms, 2 missed)</title><path d="M110,204 H628.5806451612904 Q632.5806451612904,204 632.5806451612904,208 V222 Q632.5806451612904,226 628.5806451612904,226 H110 Z" fill="#3987e5"/><rect x="110" y="201" width="592.5806451612904" height="28" fill="transparent"/></g>
+<text x="638.5806451612904" y="219.0" class="val">97%</text>
+<text x="100" y="251.0" class="lab" text-anchor="end">Qwen3.5 4B</text>
+<g class="mark"><title>Qwen3.5 4B: 95.2% (59 correct, 12 false alarms, 3 missed)</title><path d="M110,236 H619.8709677419355 Q623.8709677419355,236 623.8709677419355,240 V254 Q623.8709677419355,258 619.8709677419355,258 H110 Z" fill="#d95926"/><rect x="110" y="233" width="583.8709677419355" height="28" fill="transparent"/></g>
+<text x="629.8709677419355" y="251.0" class="val">95%</text>
+<text x="100" y="283.0" class="lab" text-anchor="end">Qwen3 8B</text>
+<g class="mark"><title>Qwen3 8B: 96.8% (60 correct, 35 false alarms, 2 missed)</title><path d="M110,268 H628.5806451612904 Q632.5806451612904,268 632.5806451612904,272 V286 Q632.5806451612904,290 628.5806451612904,290 H110 Z" fill="#199e70"/><rect x="110" y="265" width="592.5806451612904" height="28" fill="transparent"/></g>
+<text x="638.5806451612904" y="283.0" class="val">97%</text>
+<text x="100" y="315.0" class="lab" text-anchor="end">Qwen2.5 3B</text>
+<g class="mark"><title>Qwen2.5 3B: 74.2% (46 correct, 61 false alarms, 16 missed)</title><path d="M110,300 H506.64516129032256 Q510.64516129032256,300 510.64516129032256,304 V318 Q510.64516129032256,322 506.64516129032256,322 H110 Z" fill="#c98500"/><rect x="110" y="297" width="470.64516129032256" height="28" fill="transparent"/></g>
+<text x="516.6451612903226" y="315.0" class="val">74%</text>
+</svg>
+    <figcaption>Figure 1. All five flags pooled: 62 true requirements to find. Precision counts only flags whose quote
+      was verified in the posting. Hover a bar for counts.</figcaption>
+    </figure>
+
+    <p>
+      Recall is close for three of the four models: Gemma, Qwen3 8B and Qwen3.5 4B each found 59–60 of the 62
+      requirements. <strong>Precision is where they split</strong>, and precision is what matters for a
+      screening step. Each false alarm is a posting wrongly marked "you can't apply".
+    </p>
+
+    <h3>Where the false alarms came from</h3>
+
+    <figure class="chart"><svg viewBox="0 -14 720 288" role="img" aria-label="False alarms per flag. Citizenship: Gemma 0, Qwen3.5 4B 0, Qwen3 8B 0, Qwen2.5 3B 39. Undergrad only: 2, 10, 29, 2. No sponsorship: 1, 2, 6, 17." xmlns="http://www.w3.org/2000/svg">
+<line x1="110.0" y1="14" x2="110.0" y2="254" class="grid"/>
+<text x="110.0" y="268" class="tick" text-anchor="middle">0</text>
+<line x1="245.0" y1="14" x2="245.0" y2="254" class="grid"/>
+<text x="245.0" y="268" class="tick" text-anchor="middle">10</text>
+<line x1="380.0" y1="14" x2="380.0" y2="254" class="grid"/>
+<text x="380.0" y="268" class="tick" text-anchor="middle">20</text>
+<line x1="515.0" y1="14" x2="515.0" y2="254" class="grid"/>
+<text x="515.0" y="268" class="tick" text-anchor="middle">30</text>
+<line x1="650.0" y1="14" x2="650.0" y2="254" class="grid"/>
+<text x="650.0" y="268" class="tick" text-anchor="middle">40</text>
+<rect x="110" y="-10" width="12" height="12" rx="2" fill="#3987e5"/><text x="128" y="0" class="lab">Gemma 4 E4B</text>
+<rect x="231.4" y="-10" width="12" height="12" rx="2" fill="#d95926"/><text x="249.4" y="0" class="lab">Qwen3.5 4B</text>
+<rect x="345.4" y="-10" width="12" height="12" rx="2" fill="#199e70"/><text x="363.4" y="0" class="lab">Qwen3 8B</text>
+<rect x="444.59999999999997" y="-10" width="12" height="12" rx="2" fill="#c98500"/><text x="462.59999999999997" y="0" class="lab">Qwen2.5 3B</text>
+<text x="100" y="47.0" class="lab" text-anchor="end">U.S. citizenship</text>
+<text x="100" y="62.0" class="tick" text-anchor="end">of 70 postings</text>
+<g class="mark"><title>Gemma 4 E4B, U.S. citizenship: 0 false alarms out of 70 postings without it</title><path d="M110,18 H110.25 Q110.5,18 110.5,18.25 V31.75 Q110.5,32 110.25,32 H110 Z" fill="#3987e5"/><rect x="110" y="15" width="110" height="20" fill="transparent"/></g>
+<text x="116.0" y="29" class="val sm">0</text>
+<g class="mark"><title>Qwen3.5 4B, U.S. citizenship: 0 false alarms out of 70 postings without it</title><path d="M110,34 H110.25 Q110.5,34 110.5,34.25 V47.75 Q110.5,48 110.25,48 H110 Z" fill="#d95926"/><rect x="110" y="31" width="110" height="20" fill="transparent"/></g>
+<text x="116.0" y="45" class="val sm">0</text>
+<g class="mark"><title>Qwen3 8B, U.S. citizenship: 0 false alarms out of 70 postings without it</title><path d="M110,50 H110.25 Q110.5,50 110.5,50.25 V63.75 Q110.5,64 110.25,64 H110 Z" fill="#199e70"/><rect x="110" y="47" width="110" height="20" fill="transparent"/></g>
+<text x="116.0" y="61" class="val sm">0</text>
+<g class="mark"><title>Qwen2.5 3B, U.S. citizenship: 39 false alarms out of 70 postings without it</title><path d="M110,66 H632.5 Q636.5,66 636.5,70 V76 Q636.5,80 632.5,80 H110 Z" fill="#c98500"/><rect x="110" y="63" width="596.5" height="20" fill="transparent"/></g>
+<text x="642.5" y="77" class="val sm">39</text>
+<text x="100" y="131.0" class="lab" text-anchor="end">Undergrad only</text>
+<text x="100" y="146.0" class="tick" text-anchor="end">of 64 postings</text>
+<g class="mark"><title>Gemma 4 E4B, Undergrad only: 2 false alarms out of 64 postings without it</title><path d="M110,102 H133.0 Q137.0,102 137.0,106 V112 Q137.0,116 133.0,116 H110 Z" fill="#3987e5"/><rect x="110" y="99" width="110" height="20" fill="transparent"/></g>
+<text x="143.0" y="113" class="val sm">2</text>
+<g class="mark"><title>Qwen3.5 4B, Undergrad only: 10 false alarms out of 64 postings without it</title><path d="M110,118 H241.0 Q245.0,118 245.0,122 V128 Q245.0,132 241.0,132 H110 Z" fill="#d95926"/><rect x="110" y="115" width="205.0" height="20" fill="transparent"/></g>
+<text x="251.0" y="129" class="val sm">10</text>
+<g class="mark"><title>Qwen3 8B, Undergrad only: 29 false alarms out of 64 postings without it</title><path d="M110,134 H497.5 Q501.5,134 501.5,138 V144 Q501.5,148 497.5,148 H110 Z" fill="#199e70"/><rect x="110" y="131" width="461.5" height="20" fill="transparent"/></g>
+<text x="507.5" y="145" class="val sm">29</text>
+<g class="mark"><title>Qwen2.5 3B, Undergrad only: 2 false alarms out of 64 postings without it</title><path d="M110,150 H133.0 Q137.0,150 137.0,154 V160 Q137.0,164 133.0,164 H110 Z" fill="#c98500"/><rect x="110" y="147" width="110" height="20" fill="transparent"/></g>
+<text x="143.0" y="161" class="val sm">2</text>
+<text x="100" y="215.0" class="lab" text-anchor="end">No sponsorship</text>
+<text x="100" y="230.0" class="tick" text-anchor="end">of 38 postings</text>
+<g class="mark"><title>Gemma 4 E4B, No sponsorship: 1 false alarms out of 38 postings without it</title><path d="M110,186 H119.5 Q123.5,186 123.5,190 V196 Q123.5,200 119.5,200 H110 Z" fill="#3987e5"/><rect x="110" y="183" width="110" height="20" fill="transparent"/></g>
+<text x="129.5" y="197" class="val sm">1</text>
+<g class="mark"><title>Qwen3.5 4B, No sponsorship: 2 false alarms out of 38 postings without it</title><path d="M110,202 H133.0 Q137.0,202 137.0,206 V212 Q137.0,216 133.0,216 H110 Z" fill="#d95926"/><rect x="110" y="199" width="110" height="20" fill="transparent"/></g>
+<text x="143.0" y="213" class="val sm">2</text>
+<g class="mark"><title>Qwen3 8B, No sponsorship: 6 false alarms out of 38 postings without it</title><path d="M110,218 H187.0 Q191.0,218 191.0,222 V228 Q191.0,232 187.0,232 H110 Z" fill="#199e70"/><rect x="110" y="215" width="151.0" height="20" fill="transparent"/></g>
+<text x="197.0" y="229" class="val sm">6</text>
+<g class="mark"><title>Qwen2.5 3B, No sponsorship: 17 false alarms out of 38 postings without it</title><path d="M110,234 H335.5 Q339.5,234 339.5,238 V244 Q339.5,248 335.5,248 H110 Z" fill="#c98500"/><rect x="110" y="231" width="299.5" height="20" fill="transparent"/></g>
+<text x="345.5" y="245" class="val sm">17</text>
+</svg>
+    <figcaption>Figure 2. False alarms per flag: verified flags raised on postings that don't have the requirement.
+      Clearance and PhD-only had no false alarms from any model except Qwen2.5 3B (3 PhD-only).</figcaption>
+    </figure>
+
+    <h3>Cost</h3>
+
+    <figure class="chart"><svg viewBox="0 -14 720 368" role="img" aria-label="Median seconds per posting: Gemma 27.2, Qwen3.5 4B 20.4, Qwen3 8B 38.8, Qwen2.5 3B 15.3. GPU memory: 4.4, 3.6, 6.8, 2.6 GB." xmlns="http://www.w3.org/2000/svg">
+<text x="0" y="0" class="ptitle">Median time per posting</text>
+<line x1="110.0" y1="10" x2="110.0" y2="142" class="grid"/>
+<text x="110.0" y="156" class="tick" text-anchor="middle">0 s</text>
+<line x1="245.0" y1="10" x2="245.0" y2="142" class="grid"/>
+<text x="245.0" y="156" class="tick" text-anchor="middle">10 s</text>
+<line x1="380.0" y1="10" x2="380.0" y2="142" class="grid"/>
+<text x="380.0" y="156" class="tick" text-anchor="middle">20 s</text>
+<line x1="515.0" y1="10" x2="515.0" y2="142" class="grid"/>
+<text x="515.0" y="156" class="tick" text-anchor="middle">30 s</text>
+<line x1="650.0" y1="10" x2="650.0" y2="142" class="grid"/>
+<text x="650.0" y="156" class="tick" text-anchor="middle">40 s</text>
+<text x="100" y="29.0" class="lab" text-anchor="end">Gemma 4 E4B</text>
+<g class="mark"><title>Gemma 4 E4B: median 27.2 s per posting, 90th percentile 35.2 s</title><path d="M110,14 H473.44809103012085 Q477.44809103012085,14 477.44809103012085,18 V32 Q477.44809103012085,36 473.44809103012085,36 H110 Z" fill="#3987e5"/><rect x="110" y="11" width="437.44809103012085" height="28" fill="transparent"/></g>
+<text x="483.44809103012085" y="29.0" class="val">27.2 s</text>
+<text x="100" y="61.0" class="lab" text-anchor="end">Qwen3.5 4B</text>
+<g class="mark"><title>Qwen3.5 4B: median 20.4 s per posting, 90th percentile 31.5 s</title><path d="M110,46 H380.761433839798 Q384.761433839798,46 384.761433839798,50 V64 Q384.761433839798,68 380.761433839798,68 H110 Z" fill="#d95926"/><rect x="110" y="43" width="344.761433839798" height="28" fill="transparent"/></g>
+<text x="390.761433839798" y="61.0" class="val">20.4 s</text>
+<text x="100" y="93.0" class="lab" text-anchor="end">Qwen3 8B</text>
+<g class="mark"><title>Qwen3 8B: median 38.8 s per posting, 90th percentile 54.6 s</title><path d="M110,78 H629.230929017067 Q633.230929017067,78 633.230929017067,82 V96 Q633.230929017067,100 629.230929017067,100 H110 Z" fill="#199e70"/><rect x="110" y="75" width="593.230929017067" height="28" fill="transparent"/></g>
+<text x="639.230929017067" y="93.0" class="val">38.8 s</text>
+<text x="100" y="125.0" class="lab" text-anchor="end">Qwen2.5 3B</text>
+<g class="mark"><title>Qwen2.5 3B: median 15.3 s per posting, 90th percentile 27.9 s</title><path d="M110,110 H313.1433479785919 Q317.1433479785919,110 317.1433479785919,114 V128 Q317.1433479785919,132 313.1433479785919,132 H110 Z" fill="#c98500"/><rect x="110" y="107" width="277.1433479785919" height="28" fill="transparent"/></g>
+<text x="323.1433479785919" y="125.0" class="val">15.3 s</text>
+<text x="0" y="190" class="ptitle">GPU memory while running (8 GB card)</text>
+<line x1="110.0" y1="200" x2="110.0" y2="332" class="grid"/>
+<text x="110.0" y="346" class="tick" text-anchor="middle">0 GB</text>
+<line x1="245.0" y1="200" x2="245.0" y2="332" class="grid"/>
+<text x="245.0" y="346" class="tick" text-anchor="middle">2 GB</text>
+<line x1="380.0" y1="200" x2="380.0" y2="332" class="grid"/>
+<text x="380.0" y="346" class="tick" text-anchor="middle">4 GB</text>
+<line x1="515.0" y1="200" x2="515.0" y2="332" class="grid"/>
+<text x="515.0" y="346" class="tick" text-anchor="middle">6 GB</text>
+<line x1="650.0" y1="200" x2="650.0" y2="332" class="grid"/>
+<text x="650.0" y="346" class="tick" text-anchor="middle">8 GB</text>
+<text x="100" y="219.0" class="lab" text-anchor="end">Gemma 4 E4B</text>
+<g class="mark"><title>Gemma 4 E4B: about 4.4 GB of GPU memory while running</title><path d="M110,204 H403.0 Q407.0,204 407.0,208 V222 Q407.0,226 403.0,226 H110 Z" fill="#3987e5"/><rect x="110" y="201" width="367.0" height="28" fill="transparent"/></g>
+<text x="413.0" y="219.0" class="val">4.4 GB</text>
+<text x="100" y="251.0" class="lab" text-anchor="end">Qwen3.5 4B</text>
+<g class="mark"><title>Qwen3.5 4B: about 3.6 GB of GPU memory while running</title><path d="M110,236 H349.0 Q353.0,236 353.0,240 V254 Q353.0,258 349.0,258 H110 Z" fill="#d95926"/><rect x="110" y="233" width="313.0" height="28" fill="transparent"/></g>
+<text x="359.0" y="251.0" class="val">3.6 GB</text>
+<text x="100" y="283.0" class="lab" text-anchor="end">Qwen3 8B</text>
+<g class="mark"><title>Qwen3 8B: about 6.8 GB of GPU memory while running</title><path d="M110,268 H565.0 Q569.0,268 569.0,272 V286 Q569.0,290 565.0,290 H110 Z" fill="#199e70"/><rect x="110" y="265" width="529.0" height="28" fill="transparent"/></g>
+<text x="575.0" y="283.0" class="val">6.8 GB</text>
+<text x="100" y="315.0" class="lab" text-anchor="end">Qwen2.5 3B</text>
+<g class="mark"><title>Qwen2.5 3B: about 2.6 GB of GPU memory while running</title><path d="M110,300 H281.5 Q285.5,300 285.5,304 V318 Q285.5,322 281.5,322 H110 Z" fill="#c98500"/><rect x="110" y="297" width="245.5" height="28" fill="transparent"/></g>
+<text x="291.5" y="315.0" class="val">2.6 GB</text>
+</svg>
+    <figcaption>Figure 3. Median wall time per posting (prompt processing plus generation) and approximate GPU memory in
+      use during the run, on one CMP 40HX.</figcaption>
+    </figure>
+
+    <h3>Every flag</h3>
+
+    <div class="table-wrap"><table class="data">
+      <thead>
+        <tr><th>Flag</th><th>Gemma 4 E4B</th><th>Qwen3.5 4B</th><th>Qwen3 8B</th><th>Qwen2.5 3B</th></tr>
+        <tr class="sub"><th></th><th colspan="4">caught / false alarms</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>U.S. citizenship (8 true, 70 not)</td><td><strong>7</strong> / <strong>0</strong></td><td>6 / 0</td><td>6 / 0</td><td>6 / 39</td></tr>
+        <tr><td>Undergrad only (14 / 64)</td><td>13 / <strong>2</strong></td><td>14 / 10</td><td>14 / 29</td><td>4 / 2</td></tr>
+        <tr><td>No sponsorship (39 / 38)</td><td>39 / <strong>1</strong></td><td>39 / 2</td><td>39 / 6</td><td>36 / 17</td></tr>
+        <tr><td>Security clearance (1 / 77)</td><td>1 / 0</td><td>0 / 0</td><td>1 / 0</td><td>0 / 0</td></tr>
+        <tr><td>PhD only (0 / 78)</td><td>– / 0</td><td>– / 0</td><td>– / 0</td><td>– / 3</td></tr>
+      </tbody>
+    </table></div>
+
+    <h2>Comparing the four</h2>
+
+    <h3>Gemma 4 E4B: the most careful reader</h3>
+
+    <p>
+      Gemma was the only model that followed the definitions consistently. It never mistook a sponsorship or
+      work-authorization line for a citizenship requirement. Its two undergrad false alarms were real borderline cases:
+      Amazon's "one quarter/semester remaining" and Fractio's "enrolled in, or graduated within the past year". It
+      also caught three things my first answer key missed: both Genuine Parts postings ("Working on a BS degree") and
+      a "Federal security clearance" line buried in an IBM posting. I corrected the key before scoring.
+    </p>
+
+    <p>
+      Architecturally it's the odd one out. "E4B" means about 4B <em>effective</em> parameters; the file is 9.6 GB
+      because a large per-layer embedding table sits in system RAM rather than on the GPU. Most of its layers use
+      sliding-window attention, so the KV cache is tiny and long contexts are cheap on an 8 GB card. The same design
+      makes prompt-cache reuse awkward in llama.cpp, which is a whole separate project.
+    </p>
+
+    <h3>Qwen3.5 4B: close, faster, looser</h3>
+
+    <p>
+      The newest model here, and the closest competitor. It's about 25% faster than Gemma, uses less memory, and has
+      a perfect sponsorship score. Its weakness is that it over-flags undergrad-only: it treats "pursuing a university
+      degree" with no level given as bachelor's-only, and once offered Figma's "join us!" as evidence. It also missed
+      the clearance line and two citizenship test copies. If speed mattered more than precision it would be the pick;
+      for a screening step it doesn't.
+    </p>
+
+    <h3>Qwen3 8B: bigger, not better</h3>
+
+    <p>
+      Twice Gemma's effective size, and the same recall, but it flagged almost anything mentioning a bachelor's
+      degree as undergrad-only. That included "Preferred education: Bachelor's Degree" on several IBM postings and
+      "Pursuing a Bachelor's or Master's". It also read application-form questions ("Do you now or will you in the
+      future require immigration sponsorship…") as no-sponsorship statements. At 6.8 GB it nearly fills the card,
+      leaving little room for context, and it was the slowest at 39 s per posting.
+    </p>
+
+    <h3>Qwen2.5 3B: matches words, not meaning</h3>
+
+    <p>
+      It called 39 of 70 postings citizenship-only, citing lines like "located in the United States" and
+      "Bachelor's degree or above". For sponsorship it quoted Figma's housing stipend and Goldman's email policy. It
+      also produced the most quotes that weren't in the posting at all. The fastest and smallest model, but not usable
+      for this. It's still a fine test model for cache experiments, where answer quality doesn't matter.
+    </p>
+
+    <h2>What I took away</h2>
+
+    <p>
+      <strong>Bigger wasn't better.</strong> Qwen3 8B lost to a model half its effective size. On a narrow extraction
+      task, following instructions carefully mattered more than raw capacity, and public leaderboards, where Qwen3 8B
+      usually looks strong, didn't predict that. An evaluation built from your own data is worth the hour it takes.
+    </p>
+
+    <p>
+      <strong>Verifying the quote isn't verifying the meaning.</strong> The quote check stops invented evidence, but
+      nearly all of Qwen2.5 3B's false alarms passed it: the sentences it quoted really were in the postings; they
+      just didn't say what the model claimed. So every flag stays a hint that a stronger reviewer confirms, and nothing
+      is dropped on the small model's word alone.
+    </p>
+
+    <p>
+      <strong>One sentence beat every model.</strong> "Only United States citizens are eligible for this internship."
+      is the one test sentence without the words "citizenship" or "must be a citizen", and all four models missed it. The fix
+      isn't a bigger model; it's a plain text search for "citizen" running alongside the model, which catches all 8
+      test copies at no cost.
+    </p>
+
+    <p>
+      <strong>8 GB of VRAM is the smaller problem.</strong> With only 7.7 GB of system RAM, Ollama was killed for
+      running out of memory when Gemma was still loaded as the next model started. It restarted within 5 seconds, but
+      the next run failed on nearly every posting during that gap. Rerunning with one model loaded at a time fixed it.
+      On a machine this size, <code>OLLAMA_MAX_LOADED_MODELS=1</code> is worth setting.
+    </p>
+
+    <h2>Caveats</h2>
+
+    <ul>
+      <li>One run per model at temperature 0, on 78 documents. Differences of one or two flags are within noise; the
+        precision gaps are not.</li>
+      <li>I labeled the answer key myself. The models found three mistakes in it, which I fixed before scoring, and
+        there may be others.</li>
+      <li>Only 1 clearance and 0 PhD-only positives, so those rows mostly measure false alarms.</li>
+      <li>GPU memory figures are approximate readings from <code>nvidia-smi</code> during each run, not peak
+        measurements.</li>
+      <li>Thinking mode was off for every model. Qwen3 and Gemma might do better with it on, at several times the
+        cost per posting.</li>
+    </ul>
+
+  </div>
+</body>
+</html>

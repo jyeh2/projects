@@ -14,11 +14,37 @@
 
     <h1>Hardware, Firmware &amp; Software Projects</h1>
     <p>This is where I write up projects I build outside of coursework, hardware and firmware experiments alongside software engineering work.</p>
-    <p>Recent focus has been GPU firmware recovery on Intel Arc cards, including BIOS flashing and GSC firmware recovery.</p>
+    <p>Recent focus has been local LLM inference on a single secondhand mining GPU (model benchmarking and KV cache snapshots), alongside GPU firmware recovery on Intel Arc cards.</p>
 
     <h2>Software and Systems Work</h2>
 
     <div class="card-grid">
+      <a class="card post-card" href="posts/2026-09-local-llm-extraction-benchmark.html">
+        <img src="assets/cards/local-llm-benchmark.jpg" alt="Bar chart of extraction precision: Gemma 4 E4B 95%, Qwen3.5 4B 83%, Qwen3 8B 63%, Qwen2.5 3B 43%">
+        <div class="card-body">
+          <h3>Four Small LLMs on One 8GB Card</h3>
+          <p>Benchmarked Gemma 4 E4B and three Qwen models on schema-constrained extraction over 78 hand-labeled documents. Gemma led at 95% precision, beating a model twice its size.</p>
+          <div class="tags">
+            <span class="tag">Ollama</span>
+            <span class="tag">Gemma 4</span>
+            <span class="tag">Qwen</span>
+          </div>
+        </div>
+      </a>
+
+      <a class="card post-card" href="posts/2026-09-food-trace.html">
+        <img src="assets/cards/food-trace.jpg" alt="FoodTrace verify page for a demo batch of organic tomatoes">
+        <div class="card-body">
+          <h3>FoodTrace</h3>
+          <p>Hackathon team build: farm-to-shelf provenance where each batch is a Solana NFT, stations prove presence with rotating HMAC QR codes, and anyone can re-hash photos against the chain.</p>
+          <div class="tags">
+            <span class="tag">Next.js</span>
+            <span class="tag">Solana</span>
+            <span class="tag">Cloudflare</span>
+          </div>
+        </div>
+      </a>
+
       <div class="card">
         <img src="assets/cards/hkn-portal.jpg" alt="HKN Member Portal screenshot">
         <div class="card-body">
