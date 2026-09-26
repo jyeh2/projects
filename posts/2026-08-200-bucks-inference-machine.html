@@ -19,6 +19,25 @@
       Updated September 2026: down to one card, new model, and first KV-cache experiments.
     </p>
 
+    <div class="highlights">
+      <a class="stat" href="#kv-cache">
+        <span class="num">119 s &rarr; 0.3 s</span>
+        <span class="what">Time to first token on a 15.6k-token prompt, restoring a saved KV cache snapshot</span>
+      </a>
+      <a class="stat" href="2026-09-local-llm-extraction-benchmark.html">
+        <span class="num">95% precision</span>
+        <span class="what">Gemma 4 E4B on 78 hand-labeled documents, ahead of three Qwen models including an 8B</span>
+      </a>
+      <a class="stat" href="#pcie">
+        <span class="num">&minus;46% load time</span>
+        <span class="what">Soldered AC coupling capacitors onto the PCIe lanes to unlock x16</span>
+      </a>
+      <a class="stat" href="#clocks">
+        <span class="num">~10&times; throughput</span>
+        <span class="what">Prompt processing from 18 to 190 tokens/s after finding a stuck 300 MHz clock cap</span>
+      </a>
+    </div>
+
     <h2>Overview</h2>
 
     <p>
@@ -37,7 +56,7 @@
       for mining, not compute workloads, so getting them recognized properly took some work.
     </p>
 
-    <p>
+    <p id="pcie">
       One of the bigger hardware fixes was a PCIe lane negotiation issue. The cards were not initially negotiating
       full x16, which capped throughput. AC coupling capacitors soldered directly onto the PCIe lanes resolved this
       and unlocked full x16 negotiation on both cards. Measured on this machine, model load time dropped
@@ -51,7 +70,7 @@
       caps performance.
     </p>
 
-    <p>
+    <p id="clocks">
       Forgetting that step is expensive. In one session the GPU showed 100% utilization but sat at 300 MHz and 35W,
       processing prompts at about 18 tokens per second. Once the clock came up to 1935 MHz, the same work ran at about
       190 tokens per second, roughly 10x faster. A 15.6k-token agent prompt went from an estimated 17 minutes before the first
@@ -114,7 +133,7 @@
       that ordinary code checks against the source. The model extracts facts; code decides what to do with them.
     </p>
 
-    <h2>KV cache snapshots</h2>
+    <h2 id="kv-cache">KV cache snapshots</h2>
 
     <p>
       That 80-second prompt cost is the problem I'm now working on directly. <code>llama-server</code> can save a

@@ -206,3 +206,90 @@ table.data tr.sub th {
 .table-wrap {
   overflow-x: auto;
 }
+
+.highlights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin: 20px 0 8px;
+}
+.stat {
+  display: block;
+  background: #111823;
+  border: 1px solid #1f2937;
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: inherit;
+  text-decoration: none;
+}
+a.stat:hover {
+  border-color: #7aa2f7;
+  text-decoration: none;
+}
+.stat .num {
+  display: block;
+  font-size: 1.45em;
+  font-weight: 700;
+  color: #e6edf3;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.stat .what {
+  display: block;
+  font-size: 0.85em;
+  color: #b7c0cc;
+  margin-top: 4px;
+}
+
+.featured {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  background: #111823;
+  border: 1px solid #1f2937;
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 24px 0 8px;
+}
+.featured > a img {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  min-height: 220px;
+  object-fit: cover;
+  display: block;
+}
+.featured .card-body {
+  padding: 18px 20px 20px;
+}
+.featured .card-body h3 {
+  font-size: 1.25em;
+}
+.featured .highlights {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 12px 0 14px;
+}
+.featured .stat {
+  background: #0e141c;
+}
+@media (max-width: 700px) {
+  .featured {
+    grid-template-columns: 1fr;
+  }
+  .featured > a img {
+    height: 180px;
+    min-height: 0;
+  }
+}
+.container:not(.home) .highlights {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (max-width: 480px) {
+  .highlights,
+  .featured .highlights,
+  .container:not(.home) .highlights {
+    grid-template-columns: 1fr;
+  }
+  .stat .num {
+    font-size: 1.25em;
+  }
+}
