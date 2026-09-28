@@ -14,17 +14,17 @@
 
     <h1>Hardware, Firmware &amp; Software Projects</h1>
     <p>This is where I write up projects I build outside of coursework, hardware and firmware experiments alongside software engineering work.</p>
-    <p>Recent focus has been local LLM inference on a single secondhand mining GPU (model benchmarking and KV cache snapshots), alongside GPU firmware recovery on Intel Arc cards.</p>
+    <p>Recent focus has been local LLM inference on a single secondhand mining GPU (model benchmarking across llama.cpp and mistral.rs, and KV cache reuse), alongside GPU firmware recovery on Intel Arc cards.</p>
 
     <div class="featured">
       <a href="posts/2026-08-200-bucks-inference-machine.html"><img src="assets/cards/200-bucks-inference-machine.jpg" alt="Two CMP 40HX mining GPUs mounted on the Huananzhi X99 BD4 motherboard"></a>
       <div class="card-body">
         <h3><a href="posts/2026-08-200-bucks-inference-machine.html">200 Bucks Inference Machine</a></h3>
-        <p>A private LLM inference server built from about $200 of secondhand mining hardware, now running KV cache snapshot experiments and local model benchmarks.</p>
+        <p>A private LLM inference server built from about $200 of secondhand mining hardware. KV cache reuse now works on Gemma 4 through mistral.rs, with local model benchmarks across two inference engines.</p>
         <div class="highlights">
-          <a class="stat" href="posts/2026-08-200-bucks-inference-machine.html#kv-cache">
-            <span class="num">119 s &rarr; 0.3 s</span>
-            <span class="what">Time to first token with KV cache snapshots</span>
+          <a class="stat" href="posts/2026-08-200-bucks-inference-machine.html#kv-mistralrs">
+            <span class="num">54 s &rarr; 0.27 s</span>
+            <span class="what">Gemma 4 time to first token with KV cache reuse on mistral.rs</span>
           </a>
           <a class="stat" href="posts/2026-09-local-llm-extraction-benchmark.html">
             <span class="num">95% precision</span>
@@ -55,9 +55,10 @@
         <img src="assets/cards/local-llm-benchmark.jpg" alt="Bar chart of extraction precision: Gemma 4 E4B 95%, Qwen3.5 4B 83%, Qwen3 8B 63%, Qwen2.5 3B 43%">
         <div class="card-body">
           <h3>Four Small LLMs on One 8GB Card</h3>
-          <p>Benchmarked Gemma 4 E4B and three Qwen models on schema-constrained extraction over 78 hand-labeled documents. Gemma led at 95% precision, beating a model twice its size.</p>
+          <p>Benchmarked Gemma 4 E4B and three Qwen models on schema-constrained extraction over 78 hand-labeled documents. Gemma led at 95% precision, beating a model twice its size, and ran 37% faster when rerun on mistral.rs.</p>
           <div class="tags">
             <span class="tag">Ollama</span>
+            <span class="tag">mistral.rs</span>
             <span class="tag">Gemma 4</span>
             <span class="tag">Qwen</span>
           </div>
@@ -149,7 +150,7 @@
         <img src="assets/cards/200-bucks-inference-machine.jpg" alt="Two CMP 40HX mining GPUs mounted on the Huananzhi X99 BD4 motherboard">
         <div class="card-body">
           <h3>200 Bucks Inference Machine</h3>
-          <p>Mining GPUs turned into a local inference server: PCIe x16 capacitor mod, patched CUDA kernels, and KV cache snapshots cutting time to first token from 119 s to 0.3 s.</p>
+          <p>Mining GPUs turned into a local inference server: PCIe x16 capacitor mod, patched CUDA kernels, and KV cache reuse on Gemma 4 cutting time to first token from 54 s to 0.27 s.</p>
         </div>
       </a>
 
