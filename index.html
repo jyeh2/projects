@@ -22,7 +22,7 @@
         <h3><a href="posts/2026-08-200-bucks-inference-machine.html">200 Bucks Inference Machine</a></h3>
         <p>A private LLM inference server built from about $200 of secondhand mining hardware. KV cache reuse now works on Gemma 4 through mistral.rs, with local model benchmarks across two inference engines.</p>
         <div class="highlights">
-          <a class="stat" href="posts/2026-08-200-bucks-inference-machine.html#kv-mistralrs">
+          <a class="stat" href="posts/2026-09-kvsnap-kv-cache-reuse.html">
             <span class="num">54 s &rarr; 0.27 s</span>
             <span class="what">Gemma 4 time to first token with KV cache reuse on mistral.rs</span>
           </a>
@@ -51,6 +51,19 @@
     <h2>Software and Systems Work</h2>
 
     <div class="card-grid">
+      <a class="card post-card" href="posts/2026-09-kvsnap-kv-cache-reuse.html">
+        <img src="assets/cards/kvsnap.jpg" alt="Bar chart of time to first token on a 15.6k-token Gemma 4 prompt: 85 s cold on llama.cpp, 54 s cold on mistral.rs, 0.27 s with the cached prefix">
+        <div class="card-body">
+          <h3>kvsnap: KV Cache Reuse on an 8GB Card</h3>
+          <p>Reusing a 15.6k-token prompt prefix on Gemma 4: llama.cpp slot snapshots, then mistral.rs with a 17-line patch. Time to first token went from 54 s to 0.27 s, with a token-level check that cached answers match.</p>
+          <div class="tags">
+            <span class="tag">mistral.rs</span>
+            <span class="tag">Rust</span>
+            <span class="tag">KV cache</span>
+          </div>
+        </div>
+      </a>
+
       <a class="card post-card" href="posts/2026-09-local-llm-extraction-benchmark.html">
         <img src="assets/cards/local-llm-benchmark.jpg" alt="Bar chart of extraction precision: Gemma 4 E4B 95%, Qwen3.5 4B 83%, Qwen3 8B 63%, Qwen2.5 3B 43%">
         <div class="card-body">

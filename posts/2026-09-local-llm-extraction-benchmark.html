@@ -349,7 +349,7 @@
     <h2 id="engines">Update: the same models on mistral.rs</h2>
 
     <p>
-      After moving my KV cache work to <a href="2026-08-200-bucks-inference-machine.html#kv-mistralrs"><code>mistral.rs</code></a>,
+      After moving my KV cache work to <a href="2026-09-kvsnap-kv-cache-reuse.html#mistralrs"><code>mistral.rs</code></a>,
       I reran three of the four models on both engines, back to back on the same card with the same prompt, schema and
       settings. The postings had to be fetched again: 69 of the original 70 were still online (one IBM posting had
       closed), so this rerun covers 77 documents, the 69 postings plus the same 8 citizenship test copies. Qwen3 8B was
@@ -435,7 +435,7 @@
         26&ndash;34 tokens per second end to end against 17&ndash;27 on llama.cpp.</li>
       <li><strong>Memory is the price:</strong> 0.9&ndash;3.0 GB more on mistral.rs, mostly because it reserves its
         paged KV cache for the full 12k-token context up front instead of growing it. Gemma only fit on the card at all
-        after a <a href="2026-08-200-bucks-inference-machine.html#kv-mistralrs">small patch</a> moved its per-layer
+        after a <a href="2026-09-kvsnap-kv-cache-reuse.html#fixes">small patch</a> moved its per-layer
         embedding table to system RAM.</li>
       <li><strong>Accuracy differences are mostly not the engine.</strong> Qwen2.5 3B ran the exact same weights file on
         both, and the two engines still disagreed on at least one flag in 34 of 77 postings: at temperature 0, tiny

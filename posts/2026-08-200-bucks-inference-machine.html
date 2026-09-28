@@ -16,12 +16,12 @@
 
     <p class="meta">
       A local LLM inference server built on secondhand mining hardware, running full GPU-resident inference for around $200 in parts.
-      Updated September 2026: down to one card, new model, and KV cache reuse working on Gemma 4 through
-      <code>mistral.rs</code>.
+      Updated September 2026: down to one card, with the software work (KV cache reuse and model benchmarks) moved
+      to its own pages.
     </p>
 
     <div class="highlights">
-      <a class="stat" href="#kv-mistralrs">
+      <a class="stat" href="2026-09-kvsnap-kv-cache-reuse.html">
         <span class="num">54 s &rarr; 0.27 s</span>
         <span class="what">Time to first token on a 15.6k-token Gemma 4 prompt, reusing its cached prefix on mistral.rs</span>
       </a>
@@ -82,143 +82,29 @@
     <a href="#img1"><img src="../assets/inference-machine/setup.jpg" alt="Two CMP 40HX mining GPUs mounted on the Huananzhi X99 BD4 motherboard"></a>
     <a class="lightbox" id="img1" href="#"><img src="../assets/inference-machine/setup.jpg" alt="Two CMP 40HX mining GPUs mounted on the Huananzhi X99 BD4 motherboard"></a>
 
-    <h2>Software stack</h2>
+    <h2 id="software">Software</h2>
 
     <p>
-      Inference runs through <code>mistral.rs</code>, built from the GitHub master branch rather than the published
-      0.8.1 crate, which had a linking bug in <code>afq.cu</code> that prevented a clean build.
+      With one card left, the everyday model is <strong>Gemma 4 E4B</strong> through Ollama (llama.cpp): about 4B
+      active parameters, a per-layer embedding table kept in system RAM, and mostly sliding-window attention, so its
+      KV cache stays small on an 8GB card. It does schema-constrained extraction for my job-application pipeline.
     </p>
 
     <p>
-      Getting the CMP cards working with a modern CUDA toolchain required a small patch to candle kernels,
-      specifically <code>compatibility.cuh</code>. The original guard caused a redefinition collision between
-      <code>hmax_nan</code> and <code>hmin_nan</code> on this hardware. Changing the guard condition to check both
-      <code>CUDA_ARCH</code> under 800 and <code>CUDART_VERSION</code> under 12080 resolved it. Current master (0.9.4, September 2026) builds cleanly for
-      <code>sm_75</code> with CUDA 13.0 and needs no patch; the build takes about 55 minutes on this machine.
-    </p>
-
-    <p>
-      The server originally ran <code>qwen3:8b</code> through <code>mistral.rs</code> behind an OpenAI-compatible
-      endpoint, with context tuned to 32,768 tokens so the model and context stayed resident across the two 8GB cards.
-    </p>
-
-    <p>
-      With one card left, it now serves <strong>Gemma 4 E4B</strong> through Ollama (llama.cpp). An 8B model plus a
-      useful context no longer fits in 8GB, and Gemma 4 E4B suits the constraint well. About 4B parameters are
-      active, and a large per-layer embedding table stays in system RAM instead of VRAM. Most layers use sliding-window
-      attention, so its KV cache is small: the full 131k context costs about 2GB. Measured on this card with the
-      clock up: about 220 tokens per second of prompt processing and 36 tokens per second of generation.
-    </p>
-
-    <p>
-      Picking it wasn't a guess. I benchmarked it against Qwen3.5 4B, Qwen3 8B and Qwen2.5 3B on a structured
-      extraction task, and it beat all three on precision, including the model twice its size.
-      <a href="2026-09-local-llm-extraction-benchmark.html">Full write-up with charts.</a>
-    </p>
-
-    <a href="#img2"><img src="../assets/inference-machine/nvidia-smi.jpg" alt="nvidia-smi output showing a recognized CMP 40HX"></a>
-    <a class="lightbox" id="img2" href="#"><img src="../assets/inference-machine/nvidia-smi.jpg" alt="nvidia-smi output showing a recognized CMP 40HX"></a>
-
-    <h2>What it powers</h2>
-
-    <p>
-      The machine first hosted OpenClaw, a personal agent for email triage, calendar management, and job application
-      tracking. That turned out to be a poor fit for one small card. OpenClaw sends a ~15.6k-token system prompt on
-      every agent step, and llama.cpp couldn't reuse its cache between steps on Gemma's sliding-window layers. So each
-      step paid about 80 seconds of prompt processing before producing anything, and the agent's own watchdog aborted
-      runs when the clock was stuck. (Cache reuse on Gemma now works on mistral.rs; see
-      <a href="#kv-mistralrs">below</a>.)
-    </p>
-
-    <p>
-      I dropped the agent and gave the model a narrower job it does well: <strong>schema-constrained
-      extraction</strong>. It reads a document, fills a fixed JSON schema, and backs each claim with a verbatim quote
-      that ordinary code checks against the source. The model extracts facts; code decides what to do with them.
-    </p>
-
-    <h2 id="kv-cache">KV cache snapshots</h2>
-
-    <p>
-      That 80-second prompt cost is the problem I'm now working on directly. <code>llama-server</code> can save a
-      slot's KV cache to disk and restore it later. So a long shared prefix could be processed once and reloaded in
-      milliseconds, instead of being recomputed on every request. The first experiment, on a 15,600-token prefix:
-    </p>
-
-    <div class="table-wrap"><table class="data">
-      <thead>
-        <tr><th></th><th>Gemma 4 E4B, default</th><th>Gemma 4 E4B, <code>--swa-full</code></th><th>Qwen2.5 3B, default</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>Cold time to first token</td><td>85 s</td><td>119 s</td><td>83 s</td></tr>
-        <tr><td>Warm time to first token (restore + new tokens)</td><td>85.6 s (restore discarded)</td><td><strong>0.29–0.34 s</strong></td><td><strong>0.44–0.45 s</strong></td></tr>
-        <tr><td>Snapshot on disk</td><td>264 MiB</td><td>264 MiB</td><td>549 MiB</td></tr>
-        <tr><td>Restore time</td><td>169 ms</td><td>169 ms</td><td>280–300 ms</td></tr>
-      </tbody>
-    </table></div>
-
-    <p>
-      On a normal full-attention model (Qwen2.5 3B) it works out of the box. Gemma is harder: its sliding-window
-      layers keep only the last ~1,024 tokens in a ring buffer, and after a restore the server logs
-      <code>forcing full prompt re-processing ... (likely due to SWA)</code> and throws the cache away. With
-      <code>--swa-full</code> (sliding-window layers keep their full history) the restore holds and time to first
-      token falls from 119 s to 0.3 s. That costs 1.3GB more VRAM at 32k context and slower cold runs. Part of the cold-run
-      gap may be the GPU clock, which I haven't separated out yet.
-    </p>
-
-    <h3 id="kv-mistralrs">Working on Gemma 4: mistral.rs</h3>
-
-    <p>
-      <code>--swa-full</code> works, but it gives up the thing that makes Gemma a good fit for this card: the small
-      sliding-window cache. So I moved the experiment to <code>mistral.rs</code>, a Rust inference engine built on
-      Candle. Its prefix cache works in 32-token blocks and handles sliding-window layers itself. Same 15.6k-token
-      prefix, same two questions, same card, Gemma's default cache layout:
-    </p>
-
-    <div class="table-wrap"><table class="data">
-      <thead>
-        <tr><th></th><th>Gemma 4 E4B on mistral.rs, default</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>Cold time to first token (prefix cache off)</td><td>54.3–54.5 s</td></tr>
-        <tr><td>Warm time to first token</td><td><strong>0.27 s</strong> (15,584 of ~15,620 tokens served from cache)</td></tr>
-        <tr><td>Follow-up turn (prompt + answer + new question)</td><td>0.36–0.52 s</td></tr>
-        <tr><td><code>--swa-full</code> needed</td><td>No</td></tr>
-        <tr><td>GPU memory</td><td>~6.5 GB, including an 18k-token KV pool reserved up front</td></tr>
-      </tbody>
-    </table></div>
-
-    <p>
-      That is a 200&times; cut in time to first token on Gemma without <code>--swa-full</code>. The outputs showed the
-      same pattern as the llama.cpp runs: one answer identical to the cold run word for word, the other identical for
-      its first 13 words and then worded differently.
-    </p>
-
-    <p>
-      Getting it to run on an 8GB Turing card took four fixes:
+      The software work now has its own pages:
     </p>
 
     <ul>
-      <li><strong>A 17 GB activation estimate.</strong> The device mapper sized activations for a full attention
-        matrix at the requested context (8 heads &times; 32,768&sup2; &times; 2 bytes) and refused to load.
-        <code>--max-seq-len</code> only feeds that estimate, so setting it to 4096 and sizing the KV cache
-        separately with <code>--pa-context-len</code> fixed it.</li>
-      <li><strong>Half the model on the CPU.</strong> Auto-mapping then put layers 23–41 on the CPU. Pinning all 42
-        layers to the GPU (<code>-n 0:42</code>) left no room for the paged KV cache, and without paged attention
-        mistral.rs doesn't chunk prompts, so the 15.6k-token prompt ran out of memory.</li>
-      <li><strong>A 1.8 GB lookup table on the GPU.</strong> Gemma's per-layer embedding table is only ever read by
-        token ID, and llama.cpp keeps it in system RAM. A small patch (17 lines) does the same in mistral.rs: the lookup
-        runs on the CPU and only the gathered rows are copied to the GPU. That freed 1.85 GB for the KV cache.</li>
-      <li><strong>Prefill workspace.</strong> Without flash attention on <code>sm_75</code>, prefill gathers cached
-        keys and values into a temporary buffer that grows with chunk size. Dropping the chunk from 4096 to 512 tokens
-        made it fit.</li>
+      <li><a href="2026-09-kvsnap-kv-cache-reuse.html"><strong>kvsnap: KV cache reuse</strong></a>: the serving
+        stack, llama.cpp slot snapshots, and getting Gemma's cached prefix to work on mistral.rs (54 s &rarr; 0.27 s
+        time to first token), including a token-level check that the cached answers match.</li>
+      <li><a href="2026-09-local-llm-extraction-benchmark.html"><strong>Four small LLMs on one 8GB card</strong></a>:
+        why Gemma 4 E4B, benchmarked against three Qwen models, and the same models rerun on llama.cpp and
+        mistral.rs.</li>
     </ul>
 
-    <p>
-      What isn't done yet is the disk. This cache lives in GPU memory and is gone when the server restarts, which is
-      the part the original plan was about: content-addressed snapshots on SSD, tiered between RAM and disk, evicted
-      by recompute cost against size. mistral.rs already hashes each 32-token block by content, so the next step is to
-      build that storage tier inside it instead of as a proxy in front of <code>llama-server</code>.
-    </p>
+    <a href="#img2"><img src="../assets/inference-machine/nvidia-smi.jpg" alt="nvidia-smi output showing a recognized CMP 40HX"></a>
+    <a class="lightbox" id="img2" href="#"><img src="../assets/inference-machine/nvidia-smi.jpg" alt="nvidia-smi output showing a recognized CMP 40HX"></a>
 
     <h2>Community context</h2>
 
