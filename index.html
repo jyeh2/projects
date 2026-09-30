@@ -10,40 +10,107 @@
 <body>
   <div class="container home">
 
-    <p class="kicker">UC San Diego math, computer science, and linguistics — incoming CMU MS in software engineering, building inference infrastructure and firmware recovery tools outside of coursework.</p>
+    <p class="kicker">UC San Diego math, computer science, and linguistics — incoming CMU MS in software engineering, building web apps, LLM systems, and the hardware they run on outside of coursework.</p>
 
-    <h1>Hardware, Firmware &amp; Software Projects</h1>
-    <p>This is where I write up projects I build outside of coursework, hardware and firmware experiments alongside software engineering work.</p>
-    <p>Recent focus has been local LLM inference on a single secondhand mining GPU (model benchmarking across llama.cpp and mistral.rs, and KV cache reuse), alongside GPU firmware recovery on Intel Arc cards.</p>
+    <h1>Software, Systems &amp; Hardware Projects</h1>
+    <p>This is where I write up projects I build outside of coursework: software engineering first, with hardware and firmware experiments alongside.</p>
+    <p>Recently: a full-stack hackathon build on Next.js and Solana, a KV cache reuse patch for the Rust inference engine mistral.rs, and an extraction benchmark of four local LLMs, the last two on an inference server I built from secondhand GPUs.</p>
 
-    <div class="featured">
-      <a href="posts/2026-08-200-bucks-inference-machine.html"><img src="assets/cards/200-bucks-inference-machine.jpg" alt="Two CMP 40HX mining GPUs mounted on the Huananzhi X99 BD4 motherboard"></a>
+    <section class="latest">
+      <h2 class="section-label">Latest</h2>
+      <ol class="latest-list">
+        <li>
+          <time datetime="2026-09">Sep 2026</time>
+          <span class="tag">hardware</span>
+          <a href="posts/2026-09-wake-on-lan-retrofit.html">Wake on LAN Retrofit</a>
+          <span>Orange Pi Zero and a relay press the X99's power button over Tailscale</span>
+        </li>
+        <li>
+          <time datetime="2026-09">Sep 2026</time>
+          <span class="tag">Rust</span>
+          <a href="posts/2026-09-kvsnap-kv-cache-reuse.html">kvsnap: KV Cache Reuse</a>
+          <span>Gemma 4 time to first token from 54 s to 0.27 s with a 17-line mistral.rs patch</span>
+        </li>
+        <li>
+          <time datetime="2026-09">Sep 2026</time>
+          <span class="tag">ML eval</span>
+          <a href="posts/2026-09-local-llm-extraction-benchmark.html">Four Small LLMs on One 8GB Card</a>
+          <span>Extraction benchmark on 78 labeled documents, Gemma 4 E4B at 95% precision</span>
+        </li>
+        <li>
+          <time datetime="2026-09">Sep 2026</time>
+          <span class="tag">full stack</span>
+          <a href="posts/2026-09-food-trace.html">FoodTrace</a>
+          <span>Hackathon team build: farm-to-shelf provenance on Solana with rotating HMAC QR codes</span>
+        </li>
+        <li>
+          <time datetime="2026-08">Aug 2026</time>
+          <span class="tag">hardware</span>
+          <a href="posts/2026-08-200-bucks-inference-machine.html">200 Bucks Inference Machine</a>
+          <span>Local LLM server from secondhand mining GPUs, PCIe x16 capacitor mod</span>
+        </li>
+      </ol>
+    </section>
+
+    <h2 class="section-label">Featured</h2>
+    <div class="featured featured-wide">
       <div class="card-body">
-        <h3><a href="posts/2026-08-200-bucks-inference-machine.html">200 Bucks Inference Machine</a></h3>
-        <p>A private LLM inference server built from about $200 of secondhand mining hardware. KV cache reuse now works on Gemma 4 through mistral.rs, with local model benchmarks across two inference engines.</p>
-        <div class="highlights">
-          <a class="stat" href="posts/2026-09-kvsnap-kv-cache-reuse.html">
-            <span class="num">54 s &rarr; 0.27 s</span>
-            <span class="what">Gemma 4 time to first token with KV cache reuse on mistral.rs</span>
-          </a>
-          <a class="stat" href="posts/2026-09-local-llm-extraction-benchmark.html">
-            <span class="num">95% precision</span>
-            <span class="what">Best of four local LLMs on 78 labeled documents</span>
-          </a>
-          <a class="stat" href="posts/2026-08-200-bucks-inference-machine.html#pcie">
-            <span class="num">&minus;46% load time</span>
-            <span class="what">PCIe x16 unlocked by soldering capacitors</span>
-          </a>
-          <a class="stat" href="posts/2026-08-200-bucks-inference-machine.html#clocks">
-            <span class="num">~10&times; throughput</span>
-            <span class="what">Found and fixed a stuck GPU clock cap</span>
-          </a>
+        <h3><a href="posts/2026-09-kvsnap-kv-cache-reuse.html">kvsnap: KV Cache Reuse on an 8GB Card</a></h3>
+        <p>Making a 15.6k-token shared prompt cost milliseconds instead of a minute on one secondhand GPU: llama.cpp slot snapshots first, then mistral.rs with a small Rust patch and a token-level check that cached answers match.</p>
+        <div class="featured-split">
+          <figure class="chart"><svg viewBox="0 -14 720 216" role="img" aria-label="Time to first token on a 15.6k-token Gemma 4 E4B prompt. llama.cpp cold 85 s; llama.cpp restore in default mode 85.6 s because the restore is discarded; llama.cpp restore with --swa-full 0.29 to 0.34 s; mistral.rs cold 54.4 s; mistral.rs cached 0.27 s." xmlns="http://www.w3.org/2000/svg">
+<text x="0" y="0" class="ptitle">Time to first token, 15.6k-token Gemma 4 E4B prompt</text>
+<line x1="190.0" y1="12" x2="190.0" y2="182" class="grid"/>
+<text x="190.0" y="196" class="tick" text-anchor="middle">0 s</text>
+<line x1="336.7" y1="12" x2="336.7" y2="182" class="grid"/>
+<text x="336.7" y="196" class="tick" text-anchor="middle">30 s</text>
+<line x1="483.3" y1="12" x2="483.3" y2="182" class="grid"/>
+<text x="483.3" y="196" class="tick" text-anchor="middle">60 s</text>
+<line x1="630.0" y1="12" x2="630.0" y2="182" class="grid"/>
+<text x="630.0" y="196" class="tick" text-anchor="middle">90 s</text>
+<text x="180" y="33" class="lab" text-anchor="end">llama.cpp, cold</text>
+<g class="mark"><title>llama.cpp, cold (cache off): 85 s</title><path d="M190,18 H601.6 Q605.6,18 605.6,22 V36 Q605.6,40 601.6,40 H190 Z" fill="#6e7f99"/><rect x="190" y="15" width="415.6" height="28" fill="transparent"/></g>
+<text x="611.6" y="33" class="val">85 s</text>
+<text x="180" y="61" class="lab" text-anchor="end">llama.cpp, restore</text>
+<text x="180" y="75" class="tick" text-anchor="end">default: restore discarded</text>
+<g class="mark"><title>llama.cpp, restore (default: restore discarded): 85.6 s</title><path d="M190,52 H604.5 Q608.5,52 608.5,56 V70 Q608.5,74 604.5,74 H190 Z" fill="#6e7f99"/><rect x="190" y="49" width="418.5" height="28" fill="transparent"/></g>
+<text x="614.5" y="67" class="val">85.6 s</text>
+<text x="180" y="95" class="lab" text-anchor="end">llama.cpp, restore</text>
+<text x="180" y="109" class="tick" text-anchor="end">--swa-full</text>
+<g class="mark"><title>llama.cpp, restore (--swa-full): 0.29–0.34 s</title><path d="M190,86 H190.8 Q191.5,86 191.5,86.75 V107.25 Q191.5,108 190.8,108 H190 Z" fill="#6e7f99"/><rect x="190" y="83" width="110.0" height="28" fill="transparent"/></g>
+<text x="197.5" y="101" class="val">0.29–0.34 s</text>
+<text x="180" y="135" class="lab" text-anchor="end">mistral.rs, cold</text>
+<g class="mark"><title>mistral.rs, cold (cache off): 54.4 s</title><path d="M190,120 H452.0 Q456.0,120 456.0,124 V138 Q456.0,142 452.0,142 H190 Z" fill="#e0823d"/><rect x="190" y="117" width="266.0" height="28" fill="transparent"/></g>
+<text x="462.0" y="135" class="val">54.4 s</text>
+<text x="180" y="163" class="lab" text-anchor="end">mistral.rs, cached</text>
+<text x="180" y="177" class="tick" text-anchor="end">default</text>
+<g class="mark"><title>mistral.rs, cached (default): 0.27 s</title><path d="M190,154 H190.8 Q191.5,154 191.5,154.75 V175.25 Q191.5,176 190.8,176 H190 Z" fill="#e0823d"/><rect x="190" y="151" width="110.0" height="28" fill="transparent"/></g>
+<text x="197.5" y="169" class="val">0.27 s</text>
+</svg></figure>
+          <div class="highlights">
+            <a class="stat" href="posts/2026-09-kvsnap-kv-cache-reuse.html">
+              <span class="num">54 s &rarr; 0.27 s</span>
+              <span class="what">Gemma 4 time to first token, reusing the cached 15.6k-token prefix</span>
+            </a>
+            <a class="stat" href="posts/2026-09-kvsnap-kv-cache-reuse.html">
+              <span class="num">8 of 10</span>
+              <span class="what">Answers token-for-token identical with and without the cache</span>
+            </a>
+            <a class="stat" href="posts/2026-09-kvsnap-kv-cache-reuse.html">
+              <span class="num">&minus;1.85 GB</span>
+              <span class="what">VRAM freed by a 17-line mistral.rs patch moving an embedding table to system RAM</span>
+            </a>
+            <a class="stat" href="posts/2026-09-kvsnap-kv-cache-reuse.html">
+              <span class="num">37% faster</span>
+              <span class="what">Gemma 4 on mistral.rs vs llama.cpp in the extraction benchmark</span>
+            </a>
+          </div>
         </div>
         <div class="tags">
+          <span class="tag">Rust</span>
+          <span class="tag">mistral.rs</span>
           <span class="tag">llama.cpp</span>
           <span class="tag">KV cache</span>
-          <span class="tag">mistral.rs</span>
-          <span class="tag">CUDA</span>
         </div>
       </div>
     </div>
@@ -51,19 +118,6 @@
     <h2>Software and Systems Work</h2>
 
     <div class="card-grid">
-      <a class="card post-card" href="posts/2026-09-kvsnap-kv-cache-reuse.html">
-        <img src="assets/cards/kvsnap.jpg" alt="Bar chart of time to first token on a 15.6k-token Gemma 4 prompt: 85 s cold on llama.cpp, 54 s cold on mistral.rs, 0.27 s with the cached prefix">
-        <div class="card-body">
-          <h3>kvsnap: KV Cache Reuse on an 8GB Card</h3>
-          <p>Reusing a 15.6k-token prompt prefix on Gemma 4: llama.cpp slot snapshots, then mistral.rs with a 17-line patch. Time to first token went from 54 s to 0.27 s, with a token-level check that cached answers match.</p>
-          <div class="tags">
-            <span class="tag">mistral.rs</span>
-            <span class="tag">Rust</span>
-            <span class="tag">KV cache</span>
-          </div>
-        </div>
-      </a>
-
       <a class="card post-card" href="posts/2026-09-local-llm-extraction-benchmark.html">
         <img src="assets/cards/local-llm-benchmark.jpg" alt="Bar chart of extraction precision: Gemma 4 E4B 95%, Qwen3.5 4B 83%, Qwen3 8B 63%, Qwen2.5 3B 43%">
         <div class="card-body">

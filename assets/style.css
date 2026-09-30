@@ -105,6 +105,59 @@ h2 {
   border-top: 1px solid #1a2230;
 }
 
+.latest {
+  margin: 32px 0 40px;
+}
+h2.section-label {
+  margin: 0 0 8px;
+  padding: 0;
+  border: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9aa4b2;
+}
+.latest-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.latest-list li {
+  display: grid;
+  grid-template-columns: 5.5em 7.5em 17.5em 1fr;
+  gap: 4px 20px;
+  align-items: baseline;
+  padding: 10px 0;
+  border-bottom: 1px solid #1a2230;
+}
+.latest-list time {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  color: #9aa4b2;
+  font-variant-numeric: tabular-nums;
+}
+.latest-list a {
+  font-weight: 600;
+}
+.latest-list .tag {
+  justify-self: start;
+}
+.latest-list span:not(.tag) {
+  color: #b7c0cc;
+  font-size: 0.92em;
+}
+@media (max-width: 640px) {
+  .latest-list li {
+    grid-template-columns: 5.5em 1fr;
+  }
+  .latest-list a,
+  .latest-list span:not(.tag) {
+    grid-column: 2;
+  }
+}
+
 .card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -295,6 +348,28 @@ a.stat:hover {
 }
 .featured .stat {
   background: #0e141c;
+}
+.featured-wide {
+  grid-template-columns: 1fr;
+  margin-top: 8px;
+}
+.featured-split {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 16px;
+  align-items: start;
+  margin: 14px 0 16px;
+}
+.featured-split figure.chart {
+  margin: 0;
+}
+.featured-split .highlights {
+  margin: 0;
+}
+@media (max-width: 860px) {
+  .featured-split {
+    grid-template-columns: 1fr;
+  }
 }
 @media (max-width: 700px) {
   .featured {
