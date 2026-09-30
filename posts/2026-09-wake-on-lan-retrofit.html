@@ -1,0 +1,345 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Wake on LAN Retrofit</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+
+<body>
+  <div class="container">
+
+    <a href="../index.html">← back</a>
+
+    <h1>Wake on LAN Retrofit</h1>
+
+    <p class="meta">
+      Wake on LAN, kinda: an Orange Pi Zero listens for a magic packet over Tailscale and presses the X99's power button with a relay.
+    </p>
+
+    <h2>Overview</h2>
+
+    <p>
+      The <a href="2026-08-200-bucks-inference-machine.html">200 Bucks Inference Machine</a> idles low, but it still
+      has to be switched on before it can serve anything. Regular Wake on LAN is out for two reasons. First,
+      the Huananzhi X99 BD4's BIOS has no Wake on LAN option at all. Second, even if it did, the apartment's shared Wi-Fi
+      appears to isolate clients, so devices on it can't reach each other
+      directly. A WoL broadcast can't cross Tailscale either.
+    </p>
+
+    <p>
+      So this retrofit fakes it. You tap a button in any WoL app on your phone, and the app sends a unicast
+      magic packet over Tailscale to an Orange Pi Zero sitting next to the X99. A small listener on the Pi checks
+      the packet, and if everything passes, it pulses a GPIO pin. That closes a relay wired across the motherboard's
+      power switch header, and the board sees it as someone pressing the power button.
+    </p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 760 330" role="img" aria-labelledby="wol-diagram-title">
+        <title id="wol-diagram-title">Phone sends a magic packet over Tailscale to the Orange Pi listener, which runs four checks, then pcpower drives GPIO pin 7 to close a relay across the X99's power switch header</title>
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#7aa2f7"/>
+          </marker>
+          <marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#9aa4b2"/>
+          </marker>
+        </defs>
+
+        <g font-size="12" fill="#e6edf3">
+          <!-- phone -->
+          <rect x="10" y="45" width="140" height="80" rx="8" fill="#111823" stroke="#24324a"/>
+          <text x="80" y="80" text-anchor="middle" font-size="14" font-weight="600">Phone</text>
+          <text x="80" y="100" text-anchor="middle" fill="#9aa4b2">any WoL app</text>
+
+          <!-- phone to listener -->
+          <line x1="150" y1="85" x2="246" y2="85" stroke="#7aa2f7" stroke-width="2" marker-end="url(#arrow)"/>
+          <text x="198" y="75" text-anchor="middle" fill="#9aa4b2" font-size="11">magic packet</text>
+          <text x="198" y="103" text-anchor="middle" fill="#9aa4b2" font-size="11">UDP :9</text>
+          <text x="198" y="117" text-anchor="middle" fill="#9aa4b2" font-size="11">via Tailscale</text>
+
+          <!-- listener -->
+          <rect x="250" y="20" width="500" height="130" rx="8" fill="#111823" stroke="#24324a"/>
+          <text x="268" y="44" font-size="14" font-weight="600">Orange Pi Zero</text>
+          <text x="382" y="44" fill="#9aa4b2">wol_listener.py, bound to the Tailscale IP only</text>
+
+          <rect x="269" y="62" width="105" height="40" rx="6" fill="#1a2230" stroke="#24324a"/>
+          <text x="321" y="87" text-anchor="middle">1 allowlist</text>
+          <rect x="388" y="62" width="105" height="40" rx="6" fill="#1a2230" stroke="#24324a"/>
+          <text x="440" y="87" text-anchor="middle">2 payload</text>
+          <rect x="507" y="62" width="105" height="40" rx="6" fill="#1a2230" stroke="#24324a"/>
+          <text x="559" y="87" text-anchor="middle">3 cooldown</text>
+          <rect x="626" y="62" width="105" height="40" rx="6" fill="#1a2230" stroke="#24324a"/>
+          <text x="678" y="87" text-anchor="middle">4 X99 off?</text>
+
+          <text x="268" y="132" fill="#9aa4b2" font-size="11">any check fails: log the reason, go back to recvfrom</text>
+
+          <!-- listener to pcpower -->
+          <line x1="320" y1="150" x2="320" y2="226" stroke="#7aa2f7" stroke-width="2" marker-end="url(#arrow)"/>
+          <text x="330" y="193" fill="#9aa4b2" font-size="11">all pass</text>
+
+          <!-- ping -->
+          <line x1="700" y1="150" x2="700" y2="226" stroke="#9aa4b2" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrow-muted)"/>
+          <text x="690" y="185" text-anchor="end" fill="#9aa4b2" font-size="11">check 4: one ping</text>
+          <text x="690" y="199" text-anchor="end" fill="#9aa4b2" font-size="11">over Tailscale, 1 s timeout</text>
+
+          <!-- pcpower -->
+          <rect x="250" y="230" width="140" height="80" rx="8" fill="#111823" stroke="#24324a"/>
+          <text x="320" y="265" text-anchor="middle" font-size="14" font-weight="600">pcpower</text>
+          <text x="320" y="285" text-anchor="middle" fill="#9aa4b2">gpioset, line 6</text>
+
+          <!-- pcpower to relay -->
+          <line x1="390" y1="270" x2="456" y2="270" stroke="#7aa2f7" stroke-width="2" marker-end="url(#arrow)"/>
+          <text x="423" y="258" text-anchor="middle" fill="#9aa4b2" font-size="11">pin 7</text>
+          <text x="423" y="288" text-anchor="middle" fill="#9aa4b2" font-size="11">300 ms</text>
+
+          <!-- relay -->
+          <rect x="460" y="230" width="130" height="80" rx="8" fill="#111823" stroke="#24324a"/>
+          <text x="525" y="265" text-anchor="middle" font-size="14" font-weight="600">Relay</text>
+          <text x="525" y="285" text-anchor="middle" fill="#9aa4b2">H trigger, 5V coil</text>
+
+          <!-- relay to X99 -->
+          <line x1="590" y1="270" x2="646" y2="270" stroke="#7aa2f7" stroke-width="2" marker-end="url(#arrow)"/>
+          <text x="618" y="258" text-anchor="middle" fill="#9aa4b2" font-size="11">COM/NO</text>
+          <text x="618" y="288" text-anchor="middle" fill="#9aa4b2" font-size="11">short</text>
+
+          <!-- X99 -->
+          <rect x="650" y="230" width="100" height="80" rx="8" fill="#111823" stroke="#24324a"/>
+          <text x="700" y="265" text-anchor="middle" font-size="14" font-weight="600">X99</text>
+          <text x="700" y="285" text-anchor="middle" fill="#9aa4b2">PWR_SW</text>
+        </g>
+      </svg>
+      <figcaption class="meta">One tap, four checks, one 300 ms button press.</figcaption>
+    </figure>
+
+    <h2>Hardware</h2>
+
+    <p>
+      The Pi drives a single-channel 5V relay module (Songle SRD-05VDC-SL-C on a CW-025 board) from physical pin 7,
+      which is line 6 on <code>gpiochip0</code> (PA6). The pin only outputs 3.3V at a few mA, which isn't enough to
+      move a relay coil directly. The module's input stage, set to trigger on high with the H jumper, takes that small
+      signal and switches the coil's 70 to 90 mA from the Pi's 5V pin.
+    </p>
+
+    <p>
+      The relay's COM and NO contacts are wired across the X99's <code>PWR_SW</code> front panel header. One header
+      pin is held at standby voltage through a resistor, and the other is ground. Closing the relay pulls the first
+      pin to ground for 300 ms, drawing well under 1 mA, which is all a power button does anyway.
+    </p>
+
+    <a href="#img1"><img src="../assets/wake-on-lan/relay-wiring.jpg" alt="Relay module wired to the front panel power switch header on the Huananzhi X99 BD4, next to a 3D-printed enclosure"></a>
+    <a class="lightbox" id="img1" href="#"><img src="../assets/wake-on-lan/relay-wiring.jpg" alt="Relay module wired to the front panel power switch header on the Huananzhi X99 BD4, next to a 3D-printed enclosure"></a>
+
+    <a href="#img2"><img src="../assets/wake-on-lan/orange-pi-relay.jpg" alt="Orange Pi Zero GPIO header wired to the relay module, with the relay's output leads running to the motherboard"></a>
+    <a class="lightbox" id="img2" href="#"><img src="../assets/wake-on-lan/orange-pi-relay.jpg" alt="Orange Pi Zero GPIO header wired to the relay module, with the relay's output leads running to the motherboard"></a>
+
+    <h2>The magic packet</h2>
+
+    <p>
+      A magic packet is 102 bytes: six <code>0xFF</code> bytes followed by a MAC address repeated 16 times. Normally
+      a network card watches for its own MAC in that pattern. Here, nothing about it is special to the network. It's
+      an ordinary UDP payload that the Pi reads like any other data. The format is used only because every WoL app
+      already knows how to send it.
+    </p>
+
+    <p>
+      The MAC in the packet, <code>02:00:00:00:99:01</code>, is made up. The leading <code>02</code> marks it as
+      locally administered, so it belongs to no real hardware. That keeps it from colliding with the X99's own WoL,
+      and anyone who doesn't know it can't trigger the relay.
+    </p>
+
+    <p>
+      The listener builds the exact payload it expects once at startup:
+    </p>
+
+<pre><code>def build_expected_payload(mac):
+    mac_bytes = bytes.fromhex(mac.replace(":", ""))
+    return b"\xff" * 6 + mac_bytes * 16</code></pre>
+
+    <h2>The listener</h2>
+
+    <p>
+      <code>wol_listener.py</code> opens a UDP socket bound to the Pi's Tailscale IP on port 9, not
+      <code>0.0.0.0</code>. Anything sent to the Pi's LAN address on port 9 goes nowhere, because nothing is listening
+      there.
+    </p>
+
+<pre><code>sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+sock.bind((LISTEN_ADDR, LISTEN_PORT))</code></pre>
+
+    <p>
+      The main loop blocks on <code>recvfrom</code> until a packet arrives, then runs it through four checks in order.
+      Failing any of them logs a reason and goes back to waiting.
+    </p>
+
+    <ol>
+      <li>
+        <strong>Allowlist.</strong> The sender's Tailscale IP has to be in <code>ALLOWED_IPS</code>, which holds the
+        phone and the laptop. This runs first because it's the cheapest check. Over Tailscale, a source IP can't be
+        faked, because WireGuard verifies each device cryptographically.
+      </li>
+      <li>
+        <strong>Payload match.</strong> The first 102 bytes must equal the expected payload. Only the first 102 are
+        compared because some WoL apps append an optional password field.
+      </li>
+      <li>
+        <strong>Cooldown.</strong> WoL apps often send several packets per tap. If the last trigger was under 60
+        seconds ago, the packet is ignored, so one tap produces one press. The timer uses
+        <code>time.monotonic()</code>, so an NTP sync or clock change can't make it jump.
+      </li>
+      <li>
+        <strong>Already on?</strong> One ping to the X99's Tailscale IP with a 1 second timeout. A reply means the
+        machine is running, so nothing happens. This check prevents the worst failure: pressing the button on a
+        running machine starts a shutdown.
+      </li>
+    </ol>
+
+<pre><code>while True:
+    data, addr = sock.recvfrom(1024)
+    source_ip = addr[0]
+
+    if source_ip not in ALLOWED_IPS:
+        log(f"ignored packet from {source_ip} (not in allowlist)")
+        continue
+
+    if len(data) &lt; len(expected) or data[:len(expected)] != expected:
+        log(f"ignored packet from {source_ip} (MAC did not match)")
+        continue
+
+    now = time.monotonic()
+    if now - last_trigger &lt; COOLDOWN_SECONDS:
+        log(f"ignored packet from {source_ip} (cooldown)")
+        continue
+
+    if is_x99_up():
+        log(f"ignored packet from {source_ip} (X99 already up)")
+        last_trigger = now
+        continue
+
+    log(f"magic packet from {source_ip}, pulsing relay")
+    if pulse_relay():
+        last_trigger = now</code></pre>
+
+    <p>
+      <code>pulse_relay()</code> runs <code>pcpower</code> through <code>subprocess.run</code> and checks its exit code.
+      The cooldown only starts on success, so if the press fails, the next tap tries again right away instead of being
+      ignored for a minute.
+    </p>
+
+    <h2>pcpower</h2>
+
+    <p>
+      Pressing the button is one <code>gpioset</code> call wrapped in a small shell script:
+    </p>
+
+<pre><code>if [ "$1" = "hold" ]; then
+    DURATION="5s"
+else
+    DURATION="300ms"
+fi
+
+gpioset -c gpiochip0 -t "${DURATION},0" 6=1</code></pre>
+
+    <p>
+      <code>6=1</code> drives line 6 high, and <code>-t "300ms,0"</code> flips it back low after 300 ms. The trailing
+      <code>0</code> tells <code>gpioset</code> to exit once done. <code>pcpower hold</code> holds for 5 seconds
+      instead, which forces the PC off the same way holding the physical button would.
+    </p>
+
+    <h2>Keeping it running</h2>
+
+    <p>
+      A systemd service starts the listener at boot, after <code>tailscaled</code>:
+    </p>
+
+<pre><code>[Unit]
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/python3 /usr/local/bin/wol_listener.py
+Restart=always
+RestartSec=5
+User=root
+
+[Install]
+WantedBy=multi-user.target</code></pre>
+
+    <p>
+      <code>After=</code> only orders startup. It doesn't guarantee Tailscale has assigned its IP yet. If it hasn't,
+      <code>bind</code> fails, the script exits, and <code>Restart=always</code> retries every 5 seconds until it
+      works. The same setting restarts the listener if it ever crashes. It runs as root because port 9 is a privileged
+      port and GPIO access needs it.
+    </p>
+
+    <p>
+      Every check logs its own reason, so when a tap doesn't work, the journal shows which check rejected it:
+    </p>
+
+<pre><code>journalctl -u wol-listener -f</code></pre>
+
+    <h2>Design patterns, kinda</h2>
+
+    <p>
+      This build lined up with CMU's <a href="https://cmu-17695.github.io/">17-695 Design Patterns</a>. The course keeps
+      coming back to one line: the pattern is the decision, not the class diagram. Each pattern adds indirection to
+      make one change cheaper, and if that change never comes, it's all cost. So here are the patterns this project
+      uses, and two it deliberately doesn't.
+    </p>
+
+    <h3>Adapter: the whole retrofit</h3>
+
+    <p>
+      The course defines an Adapter as converting a shape you don't own into the one you want. Neither end of this
+      system can be changed. WoL apps speak magic packets, and the X99 only understands two header pins being
+      shorted. The Pi, the listener, and the relay together convert one into the other. Using the magic packet format
+      instead of something custom, like an HTTP endpoint, is what makes this an Adapter and not a new protocol: any
+      off-the-shelf WoL app works as a client with no changes.
+    </p>
+
+    <p>
+      The relay module is the same idea at the electrical level. It converts a 3.3V, few-mA GPIO signal into a dry
+      contact closure the motherboard can't tell apart from a real button.
+    </p>
+
+    <h3>Facade: pcpower</h3>
+
+    <p>
+      "Adapter converts a shape you do not own. Facade shrinks a surface you do." <code>gpioset</code> has chips,
+      line offsets, and timing flags. <code>pcpower</code> shrinks all of that to the two things a caller needs:
+      press, or <code>hold</code>. The listener only knows <code>RELAY_CMD = ["/usr/local/bin/pcpower"]</code>. That
+      same command works from an SSH session, and if the relay moves to another pin, only <code>pcpower</code> changes.
+    </p>
+
+    <h3>Chain of Responsibility: skipped</h3>
+
+    <p>
+      The four checks look like a Chain of Responsibility, where each handler either rejects the packet or passes
+      it on. The course's "skip it when" table covers this case directly: a few rules, fixed order, none coming, so
+      write the if/else with early returns. That's what the loop is. Each <code>continue</code> is an early return,
+      and reading the loop top to bottom shows the order. A list of handler objects would only pay off if checks were
+      being added, reordered, or configured, and none of those changes is planned.
+    </p>
+
+    <h3>State: skipped, and not stored at all</h3>
+
+    <p>
+      The power button is a toggle, so what a press does depends on whether the X99 is on. That sounds like a State
+      pattern, but the listener doesn't track the machine's state at all. It asks, by pinging the X99 right before
+      acting. Any stored copy would go stale as soon as someone pressed the physical button, the machine crashed, or
+      the Pi rebooted. Querying the real system each time removes the sync problem entirely.
+    </p>
+
+    <h3>Brownfield: find the seam</h3>
+
+    <p>
+      The refactoring and brownfield week asks where a system's seams are and whether you can probe them. The X99's BIOS
+      has no Wake on LAN option, so the board's own wake path is closed. The front panel <code>PWR_SW</code> header is the
+      seam: a documented, two-pin interface that already exists for exactly this purpose. The retrofit changes nothing
+      on the board. It just plugs in where a case button would.
+    </p>
+
+  </div>
+</body>
+</html>
