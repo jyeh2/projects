@@ -19,6 +19,12 @@
       so my Arc B580 gets Resizable BAR, plus a 16-byte corruption UEFITool snuck in along the way. October 2026.
     </p>
 
+    <p class="series">X99 build series: <a href="2026-08-200-bucks-inference-machine.html">The build</a> &middot; <a href="2026-09-kvsnap-kv-cache-reuse.html">mistral.rs vs llama.cpp</a> &middot; <a href="2026-09-local-llm-extraction-benchmark.html">Four LLMs compared</a> &middot; <a class="current" href="2026-10-x99-rebar-flashing.html">ReBar BIOS mod</a></p>
+
+    <p class="summary">
+      Stock X99 firmware has no Resizable BAR, which Intel Arc cards need for full performance. I inserted the ReBarDxe driver into the board's BIOS, caught a 16-byte corruption that UEFITool introduced in a volume I never edited, fixed it, and flashed the board. GPU-Z now reports ReBar as Enabled on the B580.
+    </p>
+
     <div class="highlights">
       <a class="stat" href="#result">
         <span class="num">Disabled &rarr; Enabled</span>

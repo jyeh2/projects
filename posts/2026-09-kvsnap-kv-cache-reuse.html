@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>kvsnap: KV Cache Reuse</title>
+  <title>mistral.rs vs llama.cpp</title>
   <link rel="stylesheet" href="../assets/style.css">
 </head>
 
@@ -12,12 +12,18 @@
 
     <a href="../index.html">&larr; back</a>
 
-    <h1>kvsnap: reusing a 15.6k-token prompt on an 8GB card</h1>
+    <h1>kvsnap: mistral.rs vs llama.cpp on an 8GB card</h1>
 
     <p class="meta">
       The software side of the <a href="2026-08-200-bucks-inference-machine.html">200 Bucks Inference Machine</a>:
-      making a long shared prompt cost milliseconds instead of a minute, first with llama.cpp slot snapshots, then
-      with mistral.rs. September 2026.
+      reusing a long prompt's KV cache on llama.cpp and then mistral.rs, and comparing the two engines on the same
+      models. September 2026.
+    </p>
+
+    <p class="series">X99 build series: <a href="2026-08-200-bucks-inference-machine.html">The build</a> &middot; <a class="current" href="2026-09-kvsnap-kv-cache-reuse.html">mistral.rs vs llama.cpp</a> &middot; <a href="2026-09-local-llm-extraction-benchmark.html">Four LLMs compared</a> &middot; <a href="2026-10-x99-rebar-flashing.html">ReBar BIOS mod</a></p>
+
+    <p class="summary">
+      A 15.6k-token prompt took 54&ndash;85 s to first token on one 8GB card. On mistral.rs with a 17-line patch, reusing its cached prefix brought that to 0.27 s, and 8 of 10 test answers came out token-for-token identical to recomputing. On ordinary requests, Gemma also ran 37% faster on mistral.rs than on llama.cpp, at the cost of 0.9&ndash;3.0 GB more GPU memory.
     </p>
 
     <div class="highlights">
@@ -33,9 +39,9 @@
         <span class="num">&minus;1.85 GB VRAM</span>
         <span class="what">17-line mistral.rs patch moving Gemma's per-layer embedding table to system RAM</span>
       </a>
-      <a class="stat" href="2026-09-local-llm-extraction-benchmark.html#engines">
+      <a class="stat" href="#engines">
         <span class="num">37% faster</span>
-        <span class="what">Gemma 4 on mistral.rs vs llama.cpp in the extraction benchmark</span>
+        <span class="what">Gemma 4 per-request speed on mistral.rs vs llama.cpp</span>
       </a>
     </div>
 
@@ -210,6 +216,109 @@
       was already on a coin flip, and both diverged answers were still correct. A wrong cache would show up as large
       differences from the very first token, or as flips where the model was confident; neither happened.
     </p>
+
+    <h2 id="engines">Engine comparison: the same models on both engines</h2>
+
+    <p>
+      KV cache reuse is one reason to switch engines. The other question is whether mistral.rs is any faster or
+      different on ordinary requests, so I reran three of the four models from the
+      <a href="2026-09-local-llm-extraction-benchmark.html">extraction benchmark</a> on both engines, back to back on
+      the same card with the same prompt, schema and settings. 69 of the original 70 postings were still online (one
+      IBM posting had closed), so this covers 77 documents: the 69 postings plus the same 8 citizenship test copies.
+      Qwen3 8B was left out to save about two hours of GPU time.
+    </p>
+
+    <div class="table-wrap"><table class="data">
+      <thead>
+        <tr><th>Model</th><th>Engine</th><th>Precision</th><th>Recall</th><th>Median time</th><th>Peak GPU memory</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Gemma 4 E4B</strong></td><td>llama.cpp</td><td>97% (58/60)</td><td>95% (58/61)</td><td>27.6 s</td><td>4.3 GB</td></tr>
+        <tr><td></td><td>mistral.rs</td><td>95% (58/61)</td><td>95% (58/61)</td><td>17.5 s</td><td>6.2 GB</td></tr>
+        <tr><td><strong>Qwen3.5 4B</strong></td><td>llama.cpp</td><td>80% (56/70)</td><td>92% (56/61)</td><td>20.5 s</td><td>4.2 GB</td></tr>
+        <tr><td></td><td>mistral.rs</td><td>100% (58/58)</td><td>95% (58/61)</td><td>18.5 s</td><td>7.2 GB</td></tr>
+        <tr><td><strong>Qwen2.5 3B</strong></td><td>llama.cpp</td><td>45% (46/102)</td><td>75% (46/61)</td><td>15.4 s</td><td>2.5 GB</td></tr>
+        <tr><td></td><td>mistral.rs</td><td>54% (44/82)</td><td>72% (44/61)</td><td>15.7 s</td><td>3.4 GB</td></tr>
+      </tbody>
+    </table></div>
+
+    <figure class="chart"><svg viewBox="0 -14 720 400" role="img" aria-label="Median seconds per posting by engine. Gemma 4 E4B: llama.cpp 27.6 s, mistral.rs 17.5 s; Qwen3.5 4B: llama.cpp 20.5 s, mistral.rs 18.5 s; Qwen2.5 3B: llama.cpp 15.4 s, mistral.rs 15.7 s." xmlns="http://www.w3.org/2000/svg">
+<rect x="110" y="-10" width="12" height="12" rx="2" fill="#6e7f99"/><text x="128" y="0" class="lab">llama.cpp</text>
+<rect x="220" y="-10" width="12" height="12" rx="2" fill="#e0823d"/><text x="238" y="0" class="lab">mistral.rs</text>
+<text x="0" y="28" class="ptitle">Median time per posting</text>
+<line x1="110.0" y1="40" x2="110.0" y2="172" class="grid"/>
+<text x="110.0" y="186" class="tick" text-anchor="middle">0 s</text>
+<line x1="290.0" y1="40" x2="290.0" y2="172" class="grid"/>
+<text x="290.0" y="186" class="tick" text-anchor="middle">10 s</text>
+<line x1="470.0" y1="40" x2="470.0" y2="172" class="grid"/>
+<text x="470.0" y="186" class="tick" text-anchor="middle">20 s</text>
+<line x1="650.0" y1="40" x2="650.0" y2="172" class="grid"/>
+<text x="650.0" y="186" class="tick" text-anchor="middle">30 s</text>
+<text x="100" y="64" class="lab" text-anchor="end">Gemma 4 E4B</text>
+<g class="mark"><title>Gemma 4 E4B on llama.cpp: 27.6 s median</title><path d="M110,44 H602.6106429100037 Q606.6106429100037,44 606.6106429100037,48 V56 Q606.6106429100037,60 602.6106429100037,60 H110 Z" fill="#6e7f99"/><rect x="110" y="41" width="496.61064291000366" height="22" fill="transparent"/></g>
+<text x="612.6" y="56" class="val sm">27.6 s</text>
+<g class="mark"><title>Gemma 4 E4B on mistral.rs: 17.5 s median</title><path d="M110,62 H420.10646390914917 Q424.10646390914917,62 424.10646390914917,66 V74 Q424.10646390914917,78 420.10646390914917,78 H110 Z" fill="#e0823d"/><rect x="110" y="59" width="314.10646390914917" height="22" fill="transparent"/></g>
+<text x="430.1" y="74" class="val sm">17.5 s</text>
+<text x="100" y="108" class="lab" text-anchor="end">Qwen3.5 4B</text>
+<g class="mark"><title>Qwen3.5 4B on llama.cpp: 20.5 s median</title><path d="M110,88 H475.31007623672485 Q479.31007623672485,88 479.31007623672485,92 V100 Q479.31007623672485,104 475.31007623672485,104 H110 Z" fill="#6e7f99"/><rect x="110" y="85" width="369.31007623672485" height="22" fill="transparent"/></g>
+<text x="485.3" y="100" class="val sm">20.5 s</text>
+<g class="mark"><title>Qwen3.5 4B on mistral.rs: 18.5 s median</title><path d="M110,106 H438.1203556060791 Q442.1203556060791,106 442.1203556060791,110 V118 Q442.1203556060791,122 438.1203556060791,122 H110 Z" fill="#e0823d"/><rect x="110" y="103" width="332.1203556060791" height="22" fill="transparent"/></g>
+<text x="448.1" y="118" class="val sm">18.5 s</text>
+<text x="100" y="152" class="lab" text-anchor="end">Qwen2.5 3B</text>
+<g class="mark"><title>Qwen2.5 3B on llama.cpp: 15.4 s median</title><path d="M110,132 H383.61614751815796 Q387.61614751815796,132 387.61614751815796,136 V144 Q387.61614751815796,148 383.61614751815796,148 H110 Z" fill="#6e7f99"/><rect x="110" y="129" width="277.61614751815796" height="22" fill="transparent"/></g>
+<text x="393.6" y="144" class="val sm">15.4 s</text>
+<g class="mark"><title>Qwen2.5 3B on mistral.rs: 15.7 s median</title><path d="M110,150 H388.1196622848511 Q392.1196622848511,150 392.1196622848511,154 V162 Q392.1196622848511,166 388.1196622848511,166 H110 Z" fill="#e0823d"/><rect x="110" y="147" width="282.1196622848511" height="22" fill="transparent"/></g>
+<text x="398.1" y="162" class="val sm">15.7 s</text>
+<text x="0" y="218" class="ptitle">Peak GPU memory while running (8 GB card)</text>
+<line x1="110.0" y1="230" x2="110.0" y2="362" class="grid"/>
+<text x="110.0" y="376" class="tick" text-anchor="middle">0 GB</text>
+<line x1="245.0" y1="230" x2="245.0" y2="362" class="grid"/>
+<text x="245.0" y="376" class="tick" text-anchor="middle">2 GB</text>
+<line x1="380.0" y1="230" x2="380.0" y2="362" class="grid"/>
+<text x="380.0" y="376" class="tick" text-anchor="middle">4 GB</text>
+<line x1="515.0" y1="230" x2="515.0" y2="362" class="grid"/>
+<text x="515.0" y="376" class="tick" text-anchor="middle">6 GB</text>
+<line x1="650.0" y1="230" x2="650.0" y2="362" class="grid"/>
+<text x="650.0" y="376" class="tick" text-anchor="middle">8 GB</text>
+<text x="100" y="254" class="lab" text-anchor="end">Gemma 4 E4B</text>
+<g class="mark"><title>Gemma 4 E4B on llama.cpp: 4.3 GB peak</title><path d="M110,234 H399.13720703125 Q403.13720703125,234 403.13720703125,238 V246 Q403.13720703125,250 399.13720703125,250 H110 Z" fill="#6e7f99"/><rect x="110" y="231" width="293.13720703125" height="22" fill="transparent"/></g>
+<text x="409.1" y="246" class="val sm">4.3 GB</text>
+<g class="mark"><title>Gemma 4 E4B on mistral.rs: 6.2 GB peak</title><path d="M110,252 H523.72216796875 Q527.72216796875,252 527.72216796875,256 V264 Q527.72216796875,268 523.72216796875,268 H110 Z" fill="#e0823d"/><rect x="110" y="249" width="417.72216796875" height="22" fill="transparent"/></g>
+<text x="533.7" y="264" class="val sm">6.2 GB</text>
+<text x="100" y="298" class="lab" text-anchor="end">Qwen3.5 4B</text>
+<g class="mark"><title>Qwen3.5 4B on llama.cpp: 4.2 GB peak</title><path d="M110,278 H387.14013671875 Q391.14013671875,278 391.14013671875,282 V290 Q391.14013671875,294 387.14013671875,294 H110 Z" fill="#6e7f99"/><rect x="110" y="275" width="281.14013671875" height="22" fill="transparent"/></g>
+<text x="397.1" y="290" class="val sm">4.2 GB</text>
+<g class="mark"><title>Qwen3.5 4B on mistral.rs: 7.2 GB peak</title><path d="M110,296 H592.54052734375 Q596.54052734375,296 596.54052734375,300 V308 Q596.54052734375,312 592.54052734375,312 H110 Z" fill="#e0823d"/><rect x="110" y="293" width="486.54052734375" height="22" fill="transparent"/></g>
+<text x="602.5" y="308" class="val sm">7.2 GB</text>
+<text x="100" y="342" class="lab" text-anchor="end">Qwen2.5 3B</text>
+<g class="mark"><title>Qwen2.5 3B on llama.cpp: 2.5 GB peak</title><path d="M110,322 H275.47509765625 Q279.47509765625,322 279.47509765625,326 V334 Q279.47509765625,338 275.47509765625,338 H110 Z" fill="#6e7f99"/><rect x="110" y="319" width="169.47509765625" height="22" fill="transparent"/></g>
+<text x="285.5" y="334" class="val sm">2.5 GB</text>
+<g class="mark"><title>Qwen2.5 3B on mistral.rs: 3.4 GB peak</title><path d="M110,340 H337.17431640625 Q341.17431640625,340 341.17431640625,344 V352 Q341.17431640625,356 337.17431640625,356 H110 Z" fill="#e0823d"/><rect x="110" y="337" width="231.17431640625" height="22" fill="transparent"/></g>
+<text x="347.2" y="352" class="val sm">3.4 GB</text>
+</svg>
+
+    <figcaption>Figure 2. Median wall time per posting and peak GPU memory from <code>nvidia-smi</code>, one run per
+      model per engine, 77 documents. Hover a bar for values.</figcaption>
+    </figure>
+
+    <ul>
+      <li>Speed: Gemma ran 37% faster on mistral.rs (17.5 s against 27.6 s per posting) and Qwen3.5
+        10% faster; Qwen2.5 was even. mistral.rs wrote 6&ndash;24% longer answers but generated them faster, about
+        26&ndash;34 tokens per second end to end against 17&ndash;27 on llama.cpp.</li>
+      <li>Memory: 0.9&ndash;3.0 GB more on mistral.rs, mostly because it reserves its
+        paged KV cache for the full 12k-token context up front instead of growing it. Gemma only fit on the card at all
+        after a <a href="#fixes">small patch</a> moved its per-layer
+        embedding table to system RAM.</li>
+      <li>Accuracy: most of the differences don't come from the engine. Qwen2.5 3B ran the exact same weights file on
+        both, and the two engines still disagreed on at least one flag in 34 of 77 postings: at temperature 0, tiny
+        numeric differences change which token wins, and the answer drifts from there. On llama.cpp it raised 16
+        no-sponsorship false alarms (quoting Figma's housing stipend again); on mistral.rs it raised none, but two
+        answers looped until they hit the length limit. Qwen3.5 and Gemma had to use a different file of the same
+        quantization on mistral.rs, which can't read Ollama's versions, so Qwen3.5's jump to 100% precision may owe as
+        much to the file as to the engine.</li>
+      <li>Ranking: Gemma scored 95&ndash;97% precision and 95% recall on both engines. It is
+        still the model the pipeline uses, and on mistral.rs it ran within 2 s of the much weaker Qwen2.5 3B.</li>
+    </ul>
 
     <h2>What's next</h2>
 

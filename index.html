@@ -20,6 +20,12 @@
       <h2 class="section-label">Latest</h2>
       <ol class="latest-list">
         <li>
+          <time datetime="2026-10">Oct 2026</time>
+          <span class="tag">firmware</span>
+          <a href="posts/2026-10-x99-rebar-flashing.html">Resizable BAR on X99</a>
+          <span>ReBarDxe inserted into the X99 BIOS for an Arc B580, after catching a 16-byte UEFITool corruption</span>
+        </li>
+        <li>
           <time datetime="2026-09">Sep 2026</time>
           <span class="tag">hardware</span>
           <a href="posts/2026-09-wake-on-lan-retrofit.html">Wake on LAN Retrofit</a>
@@ -28,7 +34,7 @@
         <li>
           <time datetime="2026-09">Sep 2026</time>
           <span class="tag">Rust</span>
-          <a href="posts/2026-09-kvsnap-kv-cache-reuse.html">kvsnap: KV Cache Reuse</a>
+          <a href="posts/2026-09-kvsnap-kv-cache-reuse.html">kvsnap: mistral.rs vs llama.cpp</a>
           <span>Gemma 4 time to first token from 54 s to 0.27 s with a 17-line mistral.rs patch</span>
         </li>
         <li>
@@ -55,8 +61,8 @@
     <h2 class="section-label">Featured</h2>
     <div class="featured featured-wide">
       <div class="card-body">
-        <h3><a href="posts/2026-09-kvsnap-kv-cache-reuse.html">kvsnap: KV Cache Reuse on an 8GB Card</a></h3>
-        <p>Making a 15.6k-token shared prompt cost milliseconds instead of a minute on one secondhand GPU: llama.cpp slot snapshots first, then mistral.rs with a small Rust patch and a token-level check that cached answers match.</p>
+        <h3><a href="posts/2026-09-kvsnap-kv-cache-reuse.html">kvsnap: mistral.rs vs llama.cpp on an 8GB Card</a></h3>
+        <p>Making a 15.6k-token shared prompt cost milliseconds instead of a minute on one secondhand GPU: llama.cpp slot snapshots first, then mistral.rs with a small Rust patch and a token-level check that cached answers match. The same models rerun on both engines ran up to 37% faster on mistral.rs.</p>
         <div class="featured-split">
           <figure class="chart"><svg viewBox="0 -14 720 216" role="img" aria-label="Time to first token on a 15.6k-token Gemma 4 E4B prompt. llama.cpp cold 85 s; llama.cpp restore in default mode 85.6 s because the restore is discarded; llama.cpp restore with --swa-full 0.29 to 0.34 s; mistral.rs cold 54.4 s; mistral.rs cached 0.27 s." xmlns="http://www.w3.org/2000/svg">
 <text x="0" y="0" class="ptitle">Time to first token, 15.6k-token Gemma 4 E4B prompt</text>
@@ -102,7 +108,7 @@
             </a>
             <a class="stat" href="posts/2026-09-kvsnap-kv-cache-reuse.html">
               <span class="num">37% faster</span>
-              <span class="what">Gemma 4 on mistral.rs vs llama.cpp in the extraction benchmark</span>
+              <span class="what">Gemma 4 per-request speed on mistral.rs vs llama.cpp</span>
             </a>
           </div>
         </div>
@@ -122,10 +128,9 @@
         <img src="assets/cards/local-llm-benchmark.jpg" alt="Bar chart of extraction precision: Gemma 4 E4B 95%, Qwen3.5 4B 83%, Qwen3 8B 63%, Qwen2.5 3B 43%">
         <div class="card-body">
           <h3>Four Small LLMs on One 8GB Card</h3>
-          <p>Benchmarked Gemma 4 E4B and three Qwen models on schema-constrained extraction over 78 hand-labeled documents. Gemma led at 95% precision, beating a model twice its size, and ran 37% faster when rerun on mistral.rs.</p>
+          <p>Benchmarked Gemma 4 E4B and three Qwen models on schema-constrained extraction over 78 hand-labeled documents. Gemma led at 95% precision, beating a model twice its size.</p>
           <div class="tags">
             <span class="tag">Ollama</span>
-            <span class="tag">mistral.rs</span>
             <span class="tag">Gemma 4</span>
             <span class="tag">Qwen</span>
           </div>

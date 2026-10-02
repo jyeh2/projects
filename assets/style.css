@@ -393,3 +393,21 @@ a.stat:hover {
     font-size: 1.25em;
   }
 }
+
+.summary {
+  border-left: 3px solid #7aa2f7;
+  background: #111823;
+  padding: 12px 16px;
+  margin: 16px 0 8px;
+  border-radius: 0 6px 6px 0;
+}
+.series {
+  font-size: 0.85em;
+  color: #9aa4b2;
+  margin: 8px 0 0;
+}
+.series a.current {
+  color: #e6e6e6;
+  font-weight: 600;
+  text-decoration: none;
+}
