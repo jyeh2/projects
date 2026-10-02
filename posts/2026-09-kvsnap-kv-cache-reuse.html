@@ -50,8 +50,8 @@
     </p>
 
     <p>
-      I dropped the agent and gave the model a narrower job it does well: <strong>schema-constrained
-      extraction</strong>, <a href="2026-09-local-llm-extraction-benchmark.html">benchmarked separately</a>. But the
+      I dropped the agent and gave the model a narrower job it does well: schema-constrained
+      extraction, <a href="2026-09-local-llm-extraction-benchmark.html">benchmarked separately</a>. But the
       80-second prompt cost was worth solving directly: process a long shared prefix once, keep its KV cache, and pay
       only for the new tokens after it.
     </p>
@@ -86,7 +86,7 @@
 <text x="197.5" y="169" class="val">0.27 s</text>
 </svg>
     <figcaption>Figure 1. Time to first token on the same 15.6k-token prefix plus a short question, one CMP 40HX.
-      The cached bars are too short to see; that is the point.</figcaption>
+      The cached bars are too short to see.</figcaption>
     </figure>
 
     <h2>Serving stack</h2>
@@ -103,7 +103,7 @@
     </p>
 
     <p>
-      With one card left, the everyday model is <strong>Gemma 4 E4B</strong> through Ollama (llama.cpp). About 4B
+      With one card left, the everyday model is Gemma 4 E4B through Ollama (llama.cpp). About 4B
       parameters are active, a large per-layer embedding table stays in system RAM instead of VRAM, and most layers use
       sliding-window attention, so the full 131k context costs about 2GB of KV cache. Measured on this card with the
       clock up: about 220 tokens per second of prompt processing and 36 tokens per second of generation.
@@ -167,17 +167,17 @@
     <h3 id="fixes">Four fixes to fit an 8GB Turing card</h3>
 
     <ul>
-      <li><strong>A 17 GB activation estimate.</strong> The device mapper sized activations for a full attention
+      <li>A 17 GB activation estimate: the device mapper sized activations for a full attention
         matrix at the requested context (8 heads &times; 32,768&sup2; &times; 2 bytes) and refused to load.
         <code>--max-seq-len</code> only feeds that estimate, so setting it to 4096 and sizing the KV cache
         separately with <code>--pa-context-len</code> fixed it.</li>
-      <li><strong>Half the model on the CPU.</strong> Auto-mapping then put layers 23–41 on the CPU. Pinning all 42
+      <li>Half the model on the CPU: auto-mapping then put layers 23–41 on the CPU. Pinning all 42
         layers to the GPU (<code>-n 0:42</code>) left no room for the paged KV cache, and without paged attention
         mistral.rs doesn't chunk prompts, so the 15.6k-token prompt ran out of memory.</li>
-      <li><strong>A 1.8 GB lookup table on the GPU.</strong> Gemma's per-layer embedding table is only ever read by
+      <li>A 1.8 GB lookup table on the GPU: Gemma's per-layer embedding table is only ever read by
         token ID, and llama.cpp keeps it in system RAM. A small patch (17 lines) does the same in mistral.rs: the lookup
         runs on the CPU and only the gathered rows are copied to the GPU. That freed 1.85 GB for the KV cache.</li>
-      <li><strong>Prefill workspace.</strong> Without flash attention on <code>sm_75</code>, prefill gathers cached
+      <li>Prefill workspace: without flash attention on <code>sm_75</code>, prefill gathers cached
         keys and values into a temporary buffer that grows with chunk size. Dropping the chunk from 4096 to 512 tokens
         made it fit.</li>
     </ul>
@@ -205,8 +205,8 @@
 
     <p>
       The cached state is correct but not bit-exact. With the cache, the question tokens attend over stored keys and
-      values in their own chunk; without it, they're part of the prompt's last 512-token chunk. Same math, different
-      summation order, different fp16 rounding. The shifts are small, the two divergences happened only where the model
+      values in their own chunk; without it, they're part of the prompt's last 512-token chunk. The math is the same, but
+      the summation order changes, so the fp16 rounding does too. The shifts are small, the two divergences happened only where the model
       was already on a coin flip, and both diverged answers were still correct. A wrong cache would show up as large
       differences from the very first token, or as flips where the model was confident; neither happened.
     </p>

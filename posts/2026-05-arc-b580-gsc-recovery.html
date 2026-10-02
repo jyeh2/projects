@@ -22,8 +22,8 @@
     </p>
 
     <p>
-      Arc seems to split responsibilities across multiple firmware layers: PCode, GSC, OpROM code/data, GuC, and HuC.
-      If one layer fails early enough, the entire graphics stack can die before <code>/dev/dri</code> even exists.
+      Arc splits its firmware into several layers: PCode, GSC, OpROM code/data, GuC, and HuC.
+      If one of them fails early enough, the whole graphics stack dies before <code>/dev/dri</code> even exists.
       (New GPU firmware stacks are annoyingly complicated, but Intel exposing these layers publicly made debugging possible.)
     </p>
 
@@ -69,23 +69,18 @@
     <h2>Remaining issues</h2>
 
     <p>
-      There appears to be a separate upstream issue in Linux 6.17 <code>xe</code>,
-      related to GuC scheduler idle crashes on Battlemage.
-      This seems unrelated to the firmware issue.
+      There's also a separate upstream bug in the Linux 6.17 <code>xe</code> driver where the GuC scheduler
+      crashes at idle on Battlemage. As far as I can tell it has nothing to do with the firmware problem.
     </p>
 
     <p>
-      Linux support for Arc has come a long way. The combination of <code>xe</code>, Mesa, fwupd,
-      and tools like <code>igsc</code> made recovery possible without needing to immediately switch OS.
+      Between <code>xe</code>, Mesa, fwupd and <code>igsc</code>, I could recover the card without switching to Windows,
+      which wouldn't have been possible on Linux not long ago.
     </p>
 
     <p>
-      That said, firmware distribution is still fragmented. My ASRock card firmware is not available on LVFS yet,
-      so full recovery may still require vendor flashing tools on Windows for some regions.
-    </p>
-
-    <p>
-      Linux graphics on Intel Arc is still a surprisingly deep stack.
+      Firmware distribution is still a mess, though. The firmware for my ASRock card isn't on LVFS yet,
+      so some regions may still need the vendor's Windows flashing tools.
     </p>
 
     <h2>References</h2>

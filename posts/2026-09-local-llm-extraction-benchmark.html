@@ -47,17 +47,17 @@
     </p>
 
     <ul>
-      <li><strong>U.S. citizenship required.</strong> A work-authorization, export-control or "U.S. person" line doesn't count.</li>
-      <li><strong>Undergrad only.</strong> A posting that also takes Master's students doesn't count.</li>
-      <li><strong>PhD only.</strong></li>
-      <li><strong>No visa sponsorship.</strong></li>
-      <li><strong>Security clearance required.</strong></li>
+      <li>U.S. citizenship required. A work-authorization, export-control or "U.S. person" line doesn't count.</li>
+      <li>Undergrad only. A posting that also takes Master's students doesn't count.</li>
+      <li>PhD only.</li>
+      <li>No visa sponsorship.</li>
+      <li>Security clearance required.</li>
     </ul>
 
     <p>
       For every flag it sets, the model also has to copy one sentence from the posting, word for word, as evidence.
       A short Python check then looks for that sentence in the posting text, ignoring whitespace and curly quotes.
-      <strong>A flag only counts if its quote is really there.</strong> The model extracts; ordinary code decides.
+      A flag only counts if its quote is really there, so the model does the extracting and plain code makes the call.
     </p>
 
     <p>
@@ -69,20 +69,20 @@
     <h2>Setup</h2>
 
     <ul>
-      <li><strong>Hardware:</strong> one NVIDIA CMP 40HX (Turing, 8 GB) in the X99 box, clocks locked high. The machine
+      <li>Hardware: one NVIDIA CMP 40HX (Turing, 8 GB) in the X99 box, clocks locked high. The machine
         has only 7.7 GB of system RAM, which becomes important below.</li>
-      <li><strong>Serving:</strong> Ollama, with its JSON-schema structured output (<code>format</code>),
+      <li>Serving: Ollama, with its JSON-schema structured output (<code>format</code>),
         temperature 0, a 12k-token context, and "thinking" turned off on Gemma and Qwen3/3.5 so the comparison measures
         one direct answer from each model.</li>
-      <li><strong>Data:</strong> 70 real postings, rendered in headless Chrome, plus 8 test copies where I added a
+      <li>Data: 70 real postings, rendered in headless Chrome, plus 8 test copies where I added a
         citizenship sentence in different wordings ("sole U.S. citizenship", "Only United States citizens are
         eligible…", "requires U.S. citizenship because of government contract requirements", and so on). That's 78
         documents in all.</li>
-      <li><strong>Answer key:</strong> labeled by hand from the posting text, not from any model's output. The positives:
+      <li>Answer key: labeled by hand from the posting text, not from any model's output. The positives:
         8 citizenship, 14 undergrad-only, 39 no-sponsorship, 1 clearance, 0 PhD-only. The postings also include
         deliberate traps, such as Waymo's export-control text, Medline's "permanent work authorization" line, and
         SingleStore's "sponsorship <em>is</em> available".</li>
-      <li><strong>Runs:</strong> one pass per model over all 78, one model loaded at a time.</li>
+      <li>Runs: one pass per model over all 78, one model loaded at a time.</li>
     </ul>
 
     <h2>Results</h2>
@@ -143,8 +143,8 @@
 
     <p>
       Recall is close for three of the four models: Gemma, Qwen3 8B and Qwen3.5 4B each found 59–60 of the 62
-      requirements. <strong>Precision is where they split</strong>, and precision is what matters for a
-      screening step. Each false alarm is a posting wrongly marked "you can't apply".
+      requirements. They split on precision, which is what matters for a screening step, since each false alarm is
+      a posting wrongly marked "you can't apply".
     </p>
 
     <h3>Where the false alarms came from</h3>
@@ -288,59 +288,58 @@
       makes prompt-cache reuse awkward in llama.cpp, which is a whole separate project.
     </p>
 
-    <h3>Qwen3.5 4B: close, faster, looser</h3>
+    <h3>Qwen3.5 4B: close behind, and faster</h3>
 
     <p>
-      The newest model here, and the closest competitor. It's about 25% faster than Gemma, uses less memory, and has
+      It's the newest model here and the closest competitor, about 25% faster than Gemma, uses less memory, and has
       a perfect sponsorship score. Its weakness is that it over-flags undergrad-only: it treats "pursuing a university
       degree" with no level given as bachelor's-only, and once offered Figma's "join us!" as evidence. It also missed
       the clearance line and two citizenship test copies. If speed mattered more than precision it would be the pick;
       for a screening step it doesn't.
     </p>
 
-    <h3>Qwen3 8B: bigger, not better</h3>
+    <h3>Qwen3 8B: same recall, far more false alarms</h3>
 
     <p>
-      Twice Gemma's effective size, and the same recall, but it flagged almost anything mentioning a bachelor's
+      It's twice Gemma's effective size with the same recall, but it flagged almost anything mentioning a bachelor's
       degree as undergrad-only. That included "Preferred education: Bachelor's Degree" on several IBM postings and
       "Pursuing a Bachelor's or Master's". It also read application-form questions ("Do you now or will you in the
       future require immigration sponsorship…") as no-sponsorship statements. At 6.8 GB it nearly fills the card,
       leaving little room for context, and it was the slowest at 39 s per posting.
     </p>
 
-    <h3>Qwen2.5 3B: matches words, not meaning</h3>
+    <h3>Qwen2.5 3B: keyword matching</h3>
 
     <p>
       It called 39 of 70 postings citizenship-only, citing lines like "located in the United States" and
       "Bachelor's degree or above". For sponsorship it quoted Figma's housing stipend and Goldman's email policy. It
-      also produced the most quotes that weren't in the posting at all. The fastest and smallest model, but not usable
+      also produced the most quotes that weren't in the posting at all. It was the fastest and smallest model, and still not usable
       for this. It's still a fine test model for cache experiments, where answer quality doesn't matter.
     </p>
 
     <h2>What I took away</h2>
 
     <p>
-      <strong>Bigger wasn't better.</strong> Qwen3 8B lost to a model half its effective size. On a narrow extraction
+      Qwen3 8B lost to a model half its effective size. On a narrow extraction
       task, following instructions carefully mattered more than raw capacity, and public leaderboards, where Qwen3 8B
       usually looks strong, didn't predict that. An evaluation built from your own data is worth the hour it takes.
     </p>
 
     <p>
-      <strong>Verifying the quote isn't verifying the meaning.</strong> The quote check stops invented evidence, but
-      nearly all of Qwen2.5 3B's false alarms passed it: the sentences it quoted really were in the postings; they
+      The quote check stops invented evidence, but it can't check meaning. Nearly all of Qwen2.5 3B's false alarms
+      passed it: the sentences it quoted really were in the postings; they
       just didn't say what the model claimed. So every flag stays a hint that a stronger reviewer confirms, and nothing
       is dropped on the small model's word alone.
     </p>
 
     <p>
-      <strong>One sentence beat every model.</strong> "Only United States citizens are eligible for this internship."
-      is the one test sentence without the words "citizenship" or "must be a citizen", and all four models missed it. The fix
-      isn't a bigger model; it's a plain text search for "citizen" running alongside the model, which catches all 8
-      test copies at no cost.
+      All four models missed "Only United States citizens are eligible for this internship.", the one test sentence
+      without the words "citizenship" or "must be a citizen". A plain text search for "citizen" running alongside the
+      model catches all 8 test copies at no cost.
     </p>
 
     <p>
-      <strong>8 GB of VRAM is the smaller problem.</strong> With only 7.7 GB of system RAM, Ollama was killed for
+      System RAM turned out to be a bigger problem than VRAM. With only 7.7 GB of system RAM, Ollama was killed for
       running out of memory when Gemma was still loaded as the next model started. It restarted within 5 seconds, but
       the next run failed on nearly every posting during that gap. Rerunning with one model loaded at a time fixed it.
       On a machine this size, <code>OLLAMA_MAX_LOADED_MODELS=1</code> is worth setting.
@@ -430,21 +429,21 @@
     </figure>
 
     <ul>
-      <li><strong>Speed:</strong> Gemma ran 37% faster on mistral.rs (17.5 s against 27.6 s per posting) and Qwen3.5
+      <li>Speed: Gemma ran 37% faster on mistral.rs (17.5 s against 27.6 s per posting) and Qwen3.5
         10% faster; Qwen2.5 was even. mistral.rs wrote 6&ndash;24% longer answers but generated them faster, about
         26&ndash;34 tokens per second end to end against 17&ndash;27 on llama.cpp.</li>
-      <li><strong>Memory is the price:</strong> 0.9&ndash;3.0 GB more on mistral.rs, mostly because it reserves its
+      <li>Memory: 0.9&ndash;3.0 GB more on mistral.rs, mostly because it reserves its
         paged KV cache for the full 12k-token context up front instead of growing it. Gemma only fit on the card at all
         after a <a href="2026-09-kvsnap-kv-cache-reuse.html#fixes">small patch</a> moved its per-layer
         embedding table to system RAM.</li>
-      <li><strong>Accuracy differences are mostly not the engine.</strong> Qwen2.5 3B ran the exact same weights file on
+      <li>Accuracy: most of the differences don't come from the engine. Qwen2.5 3B ran the exact same weights file on
         both, and the two engines still disagreed on at least one flag in 34 of 77 postings: at temperature 0, tiny
         numeric differences change which token wins, and the answer drifts from there. On llama.cpp it raised 16
         no-sponsorship false alarms (quoting Figma's housing stipend again); on mistral.rs it raised none, but two
         answers looped until they hit the length limit. Qwen3.5 and Gemma had to use a different file of the same
         quantization on mistral.rs, which can't read Ollama's versions, so Qwen3.5's jump to 100% precision may owe as
         much to the file as to the engine.</li>
-      <li><strong>The ranking held.</strong> Gemma scored 95&ndash;97% precision and 95% recall on both engines. It is
+      <li>Ranking: Gemma scored 95&ndash;97% precision and 95% recall on both engines. It is
         still the model the pipeline uses, and on mistral.rs it ran within 2 s of the much weaker Qwen2.5 3B.</li>
     </ul>
 

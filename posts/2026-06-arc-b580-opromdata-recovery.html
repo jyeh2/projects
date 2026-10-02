@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Intel Arc B580 firmware debugging — part 2 (opromdata &amp; VBT dissection)</title>
+  <title>Intel Arc B580 firmware debugging, part 2 (opromdata &amp; VBT dissection)</title>
   <link rel="stylesheet" href="../assets/style.css">
 </head>
 
@@ -14,89 +14,82 @@
     <h1>Intel Arc B580 firmware debugging, part 2 (opromdata &amp; VBT dissection)</h1>
 
     <p class="meta">
-      Continuing from the GSC recovery: investigating the remaining GuC idle crash and PCODE instability through opromdata analysis.
+      Follow-up to the GSC recovery: chasing the GuC idle crash and the PCODE failures that were left, by taking apart the opromdata.
     </p>
 
     <p>
-      The GSC reflash got the card online, but two problems persisted. PCODE was still intermittently
-      failing on cold boot, and a GuC idle crash loop was occurring roughly 90 seconds after the desktop
-      loaded regardless of workload. <code>guc_exec_queue_timedout_job, seqno=213, in no process [-1]</code>.
+      The GSC reflash got the card online, but two problems stuck around. PCODE still failed on some cold boots,
+      and about 90 seconds after the desktop loaded, GuC would crash in a loop no matter what I was running:
+      <code>guc_exec_queue_timedout_job, seqno=213, in no process [-1]</code>.
     </p>
 
     <h2>Narrowing the remaining problem</h2>
 
     <p>
-      The Windows golden image recovery tool (IntelGFXFwUpdateTool v6.0.36) had previously flashed
-      <code>fwcode</code> and <code>opromcode</code> back to golden image versions, but explicitly skipped
-      <code>fwdata</code> as incompatible. <code>opromdata</code> was never touched by any tool on either OS.
+      Intel's Windows recovery tool (IntelGFXFwUpdateTool v6.0.36) had already flashed <code>fwcode</code> and
+      <code>opromcode</code> back to the golden image versions, but it skipped <code>fwdata</code> as incompatible.
+      Nothing on either OS had ever touched <code>opromdata</code>.
     </p>
 
     <p>
-      Research confirmed via fwupd GitHub issue #9889 that <code>opromdata</code> and <code>fwdata</code>
-      are 4-ID matched — specific to the board partner's subsystem vendor and device IDs. The ASRock
-      Challenger B580 carries subsystem ID <code>1849:6021</code>. Solaris17's Arc-Firmware repo lists
-      this card as "Unknown Version" with no matching opromdata available. The card was running a generic
-      reference opromdata never intended for the Challenger's physical hardware.
+      According to fwupd GitHub issue #9889, <code>opromdata</code> and <code>fwdata</code> are 4-ID matched, meaning
+      they're tied to the board partner's subsystem vendor and device IDs. The ASRock Challenger B580 is
+      <code>1849:6021</code>, and Solaris17's Arc-Firmware repo lists it as "Unknown Version" with no matching
+      opromdata. So the card was running a generic reference opromdata that was never meant for the Challenger.
     </p>
 
     <p>
-      Working hypothesis: GuC reads power state transition tables from opromdata during init. A mismatch
-      between those tables and what the ASRock hardware actually expects causes GuC to time out waiting
-      for a transition that never completes. The subsequent dirty shutdown corrupts card state, causing
-      PCODE to fail on the next cold boot. The two symptoms are one chain, not two independent problems.
+      My theory: GuC reads power state transition tables from opromdata during init. If those tables don't match
+      what the ASRock hardware expects, GuC times out waiting for a transition that never finishes. The dirty
+      shutdown after that leaves the card in a bad state, and PCODE fails on the next cold boot. That would make
+      both symptoms one chain of failures.
     </p>
 
-    <h2>Obtaining the reference opromdata</h2>
+    <h2>Getting the reference opromdata</h2>
 
     <p>
-      The file <code>bmg_e20b_1100_config19.bin</code> was pulled from Solaris17's repo — the generic
-      e20b opromdata, the closest publicly available equivalent to what the Challenger should have.
-      The file is 65,536 bytes (64KB).
+      I pulled <code>bmg_e20b_1100_config19.bin</code> from Solaris17's repo. It's the generic e20b opromdata and
+      the closest public match to what the Challenger should have. The file is 65,536 bytes (64KB).
     </p>
 
     <h2>Binary structure</h2>
 
     <p>
-      The file has two distinct layers.
+      The file has two layers. The first 2,048 bytes (<code>0x0000</code> to <code>0x07FF</code>) are an Intel Code
+      Partition Directory (<code>$CPD</code>) manifest, with an <code>OROM.man</code> manifest entry, a
+      <code>VBT</code> entry (1,344 bytes) and <code>VBT.met</code> metadata (1,220 bytes). There's a
+      <code>$MN2</code> Intel manifest header at <code>0x338</code>, which means this region has an RSA signature
+      blob. If the card checks that signature when flashing, any patch here gets rejected.
     </p>
 
     <p>
-      The first 2,048 bytes (<code>0x0000</code> to <code>0x07FF</code>) form an Intel Code Partition
-      Directory (<code>$CPD</code>) manifest. This region contains an <code>OROM.man</code> manifest entry,
-      a <code>VBT</code> entry (1,344 bytes), and <code>VBT.met</code> metadata (1,220 bytes). A
-      <code>$MN2</code> Intel manifest header at <code>0x338</code> indicates this region carries an RSA
-      signature blob. If the platform verifies this signature at flash time, any patch to this region
-      would be rejected.
-    </p>
-
-    <p>
-      The remaining 63,488 bytes (<code>0x0800</code> to <code>0xFFFF</code>) form a standard PCI Option
-      ROM, beginning with the <code>55 AA</code> signature at <code>0x0800</code> and a PCIR data structure
-      at <code>0x081C</code> identifying vendor <code>0x8086</code> (Intel). This is the patchable region.
+      The other 63,488 bytes (<code>0x0800</code> to <code>0xFFFF</code>) are a normal PCI Option ROM. It starts with
+      the <code>55 AA</code> signature at <code>0x0800</code>, and the PCIR data structure at <code>0x081C</code>
+      gives vendor <code>0x8086</code> (Intel). This is the part that can be patched.
     </p>
 
     <h2>VBT structure</h2>
 
     <p>
-      The Video BIOS Table header sits at absolute offset <code>0x283C</code> with the signature
-      <code>$VBT BATTLEMAGE</code>. Key header fields:
+      The Video BIOS Table header is at absolute offset <code>0x283C</code>, with the signature
+      <code>$VBT BATTLEMAGE</code>. The header fields:
     </p>
 
     <ul>
       <li>Version: 100</li>
       <li>Total VBT size: 7,287 bytes (ends at <code>0x44B3</code>)</li>
-      <li>Checksum byte: <code>0xF7</code> at absolute offset <code>0x2856</code> — must be recomputed after any patch</li>
-      <li>BDB offset from VBT start: <code>0x0030</code>, placing the BIOS Data Block header at <code>0x286C</code></li>
+      <li>Checksum byte: <code>0xF7</code> at absolute offset <code>0x2856</code>, which has to be recomputed after any patch</li>
+      <li>BDB offset from VBT start: <code>0x0030</code>, so the BIOS Data Block header is at <code>0x286C</code></li>
     </ul>
 
     <p>
-      The BDB header signature confirms <code>BIOS_DATA_BLOCK</code>, version 257.
+      The BDB header signature is <code>BIOS_DATA_BLOCK</code>, version 257.
     </p>
 
     <h2>BDB block map</h2>
 
     <p>
-      Twenty blocks were identified within the VBT, fully accounting for all 7,239 bytes of BDB content:
+      I found twenty blocks in the VBT, which together account for all 7,239 bytes of BDB content:
     </p>
 
     <table>
@@ -132,70 +125,66 @@
       </tbody>
     </table>
 
-    <h2>Blocks of interest for patching</h2>
+    <h2>Blocks worth patching</h2>
 
     <p>
-      Block 27 (panel/pipe timings, 814 bytes) contains repeating 20-byte groups with values consistent
-      with power state timing parameters: <code>0x07D0</code> (2000), <code>0x000A</code> (10),
-      <code>0x01F4</code> (500), <code>0x1388</code> (5000). These are the most likely source of the GuC
-      idle timeout — if the Challenger's hardware expects different transition timing, GuC would stall
-      waiting for a state change that never arrives within the expected window.
+      Block 27 (panel/pipe timings, 814 bytes) has repeating 20-byte groups whose values look like power state
+      timing parameters: <code>0x07D0</code> (2000), <code>0x000A</code> (10), <code>0x01F4</code> (500),
+      <code>0x1388</code> (5000). If anything is causing the GuC idle timeout, it's probably these. If the
+      Challenger expects different transition timing, GuC would stall waiting for a state change that doesn't
+      arrive in time.
     </p>
 
     <p>
-      Block 10 (Child Device Table, 203 bytes) is entirely zeroed except for the entry size byte.
-      A fully empty child device table means no port assignments are hardcoded, which is unusual for a
-      shipping card and may contribute to display topology confusion at init.
+      Block 10 (Child Device Table, 203 bytes) is all zeros except the entry size byte. That means no ports are
+      hardcoded, which is odd for a shipping card and might confuse the display topology at init.
     </p>
 
     <p>
-      Block 58 (Driver Features, 674 bytes) controls capability flags including PSR, DC states, and
-      GuC submission configuration.
+      Block 58 (Driver Features, 674 bytes) holds capability flags, including PSR, DC states and GuC submission
+      config.
     </p>
 
     <p>
-      Block 56 (HDMI Level Shift, 210 bytes) is almost entirely zeroed after the first byte
-      (<code>0x0d</code>), suggesting HDMI transmitter level configuration is not populated in this
-      reference build.
+      Block 56 (HDMI Level Shift, 210 bytes) is almost all zeros after the first byte (<code>0x0d</code>), so it
+      looks like HDMI transmitter levels just aren't filled in for this reference build.
     </p>
 
-    <h2>GSC verification question</h2>
+    <h2>Will the GSC accept a patched file?</h2>
 
     <p>
-      The critical unknown before any patch can be flashed is whether the GSC validates opromdata content
-      at write time. The <code>$CPD</code> manifest region contains what appears to be an RSA signature.
-      If the GSC checks this on opromdata writes the same way it does for fwcode, a patched binary would
-      be rejected regardless of content correctness.
+      The big unknown before flashing any patch is whether the GSC validates opromdata when it's written. The
+      <code>$CPD</code> manifest region has what looks like an RSA signature. If the GSC checks it on opromdata
+      writes the same way it does for fwcode, a patched file gets rejected no matter what's in it.
     </p>
 
     <p>
-      Evidence suggesting opromdata may be less strictly validated: <code>igsc</code> can read opromdata
-      back from the card via <code>/dev/mei1</code> without issue, and the 4-ID matching system exists
-      precisely to allow board partners to customise this region post-fabrication — which would be
-      impractical under mandatory per-board RSA signing.
+      Two things make me think opromdata is checked less strictly. <code>igsc</code> reads opromdata back from the
+      card through <code>/dev/mei1</code> with no problem. And the whole point of 4-ID matching is to let board
+      partners customize this region after the chip is made, which would be a pain if every board needed its own
+      RSA signature.
     </p>
 
     <p>
-      The CH341A physical flash programmer is the definitive next step. Dumping the chip from another
-      ASRock B580 Challenger will answer two questions at once: what the correct VBT content looks like
-      for this specific hardware, and whether the <code>$CPD</code> signature region differs between
-      ASRock's version and the Solaris17 reference. If the signature bytes are identical, flashing a
-      patched binary via <code>igsc</code> is viable. If they differ, a different approach is needed.
+      Next step is the CH341A flash programmer. Dumping the chip from another ASRock B580 Challenger answers two
+      questions: what the right VBT looks like for this hardware, and whether ASRock's <code>$CPD</code> signature
+      region differs from the Solaris17 reference. If the signature bytes match, I can flash a patched file with
+      <code>igsc</code>. If they don't, I need another approach.
     </p>
 
-    <h2>Current state</h2>
+    <h2>Where things stand</h2>
 
     <ul>
-      <li><strong>GSC firmware:</strong> stable at 21.1182 via igsc reflash on Linux through <code>/dev/mei1</code></li>
-      <li><strong>fwcode / opromcode:</strong> at golden image recovery versions from Windows flash (21.1177 / 23.1065)</li>
-      <li><strong>fwdata:</strong> never successfully updated — skipped as incompatible by the Windows tool</li>
-      <li><strong>opromdata:</strong> still running the generic Solaris17 reference binary, not the ASRock Challenger native version</li>
-      <li><strong>PCODE:</strong> intermittently failing on cold boot — assessed as downstream of the GuC crash on the previous boot</li>
-      <li><strong>GuC:</strong> still crashing at idle, root cause attributed to opromdata power table mismatch</li>
+      <li>GSC firmware: stable at 21.1182 after the igsc reflash on Linux through <code>/dev/mei1</code></li>
+      <li>fwcode / opromcode: golden image recovery versions from the Windows flash (21.1177 / 23.1065)</li>
+      <li>fwdata: never updated, since the Windows tool skipped it as incompatible</li>
+      <li>opromdata: still the generic Solaris17 reference, not ASRock's own Challenger version</li>
+      <li>PCODE: still fails on some cold boots, probably because of the GuC crash on the boot before</li>
+      <li>GuC: still crashes at idle, and I think the opromdata power table mismatch is the cause</li>
     </ul>
 
     <p>
-      Waiting on CH341A programmer to dump the opromdata from a second ASRock B580 Challenger unit.
+      Now waiting on the CH341A to dump the opromdata from a second ASRock B580 Challenger.
     </p>
     <h2>Sum pics:</h2>
 
@@ -227,7 +216,7 @@
     <ul>
       <li><a href="https://github.com/intel/igsc">Intel GSC tooling (igsc)</a></li>
       <li><a href="https://github.com/Solaris17/Arc-Firmware">Solaris17 Arc-Firmware repo</a></li>
-      <li><a href="https://github.com/fwupd/fwupd/issues/9889">fwupd issue #9889 — 4-ID firmware matching</a></li>
+      <li><a href="https://github.com/fwupd/fwupd/issues/9889">fwupd issue #9889: 4-ID firmware matching</a></li>
       <li><a href="https://docs.kernel.org/gpu/xe/">Linux xe driver documentation</a></li>
       <li><a href="https://fwupd.org/">fwupd project</a></li>
     </ul>

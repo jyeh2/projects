@@ -15,8 +15,8 @@
     <h1>Enabling Resizable BAR on an X99 board for the Arc B580</h1>
 
     <p class="meta">
-      Modding the BIOS of the Huananzhi X99-BD4 from the <a href="2026-08-200-bucks-inference-machine.html">200 Bucks Inference Machine</a>
-      so the Arc B580 gets Resizable BAR, including a 16-byte corruption UEFITool introduced along the way. October 2026.
+      Modding the BIOS on the Huananzhi X99-BD4 (the board from the <a href="2026-08-200-bucks-inference-machine.html">200 Bucks Inference Machine</a>)
+      so my Arc B580 gets Resizable BAR, plus a 16-byte corruption UEFITool snuck in along the way. October 2026.
     </p>
 
     <div class="highlights">
@@ -38,11 +38,11 @@
       </a>
     </div>
 
-    <h2>Objective</h2>
+    <h2>Why</h2>
 
     <p>
-      Intel recommends Resizable BAR (ReBar) for Arc cards, since performance drops noticeably without it, and the stock
-      X99 firmware does not offer it. I followed the <a href="https://github.com/xCuri0/ReBarUEFI/wiki">ReBarUEFI wiki</a>
+      Intel recommends Resizable BAR (ReBar) for Arc cards because performance drops noticeably without it, and the stock
+      X99 firmware doesn't have the option. I followed the <a href="https://github.com/xCuri0/ReBarUEFI/wiki">ReBarUEFI wiki</a>
       to insert its open source ReBarDxe driver into the board's AMI Aptio V firmware.
     </p>
 
@@ -66,7 +66,7 @@
 
     <p>
       I started from <code>full_backup.bin</code>, a 16 MB dump of the whole flash chip including the Intel flash
-      descriptor. It stayed untouched as the reference for every later comparison.
+      descriptor, and never touched it so I'd have something to compare everything against.
     </p>
 
     <ol>
@@ -85,7 +85,7 @@
 
     <p>
       UEFIPatch, run with the <code>patches.txt</code> from the ReBarUEFI repository, reported "No patches can be applied
-      to input file". Testing every pattern against the decompressed modules confirmed none matched. Disassembly of
+      to input file". I also tested every pattern against the decompressed modules by hand and none matched. Disassembly of
       PciBus showed a vendor variant with a 64-bit MMIO limit of <code>0x8FFFFFFFF</code> (about 36 GB), well above the
       16 GB limit the stock patch targets. The wiki treats this as an acceptable outcome for these X99 boards.
     </p>
@@ -93,8 +93,8 @@
     <h2 id="verification">Verification: a 16-byte corruption from UEFITool</h2>
 
     <p>
-      A byte-by-byte comparison of the backup against <code>patched_image.rom</code> showed two changed regions, and
-      only one of them was mine.
+      I diffed the backup against <code>patched_image.rom</code> byte by byte and got two changed regions. I only
+      made one of them.
     </p>
 
     <div class="table-wrap"><table class="data">
@@ -106,21 +106,21 @@
     </table></div>
 
     <p>
-      <strong>What was lost.</strong> The original bytes, <code>EA D0 FF 00 F0</code>, decode to
+      The original bytes, <code>EA D0 FF 00 F0</code>, decode to
       <code>jmp far F000:FFD0</code>. This is a constant from GenFv, the EDK2 tool that builds firmware volumes: a small
       jump stub on a 4 KB boundary, used as an entry point when starting the secondary CPU cores. I found no proof this
-      firmware uses it, but on a 12-core Xeon losing it risked a hang during CPU initialization, so I kept it.
+      firmware uses it, but on a 12-core Xeon losing it could mean a hang during CPU initialization, so I wasn't going to risk it.
     </p>
 
     <p>
-      <strong>Why it happened.</strong> On save, UEFITool 0.28 rebuilt the neighboring volume and regenerated the pad file
+      On save, UEFITool 0.28 rebuilt the neighboring volume and regenerated the pad file
       as empty. This is a known bug. The wiki has a pad file check for it, but points only at the volume you modified.
       I ruled out free space (over 2 MB remained) and a firmware-wide checksum (the block's last two bytes are a checksum,
       but they cover only that block).
     </p>
 
     <p>
-      <strong>The fix.</strong> I copied the 16 bytes back from the backup to produce <code>patched_image_fixed.rom</code>.
+      To fix it I copied the 16 bytes back from the backup to produce <code>patched_image_fixed.rom</code>.
       Its only difference from the original firmware is the ReBarDxe file. All four firmware volumes parse cleanly,
       <code>fc /b</code> confirmed the compare, and the flash descriptor, ME, NVRAM, microcode and reset vector are
       identical to the backup.
@@ -162,16 +162,16 @@
     <a href="#img6"><img src="../assets/x99-rebar/superposition.jpg" alt="Unigine Superposition 1080p High result of 9182"></a>
     <a class="lightbox" id="img6" href="#"><img src="../assets/x99-rebar/superposition.jpg" alt="Unigine Superposition 1080p High result of 9182"></a>
 
-    <p>Still to try: a larger ReBarState value (32 for unlimited) so the full 12 GB of VRAM maps at once.</p>
+    <p>I haven't tried a larger ReBarState value yet (32 for unlimited), which would let the full 12 GB of VRAM map at once.</p>
 
-    <h2>Takeaways</h2>
+    <h2>If you're doing this yourself</h2>
 
-    <ul>
-      <li><strong>Always diff the patched image against the original dump.</strong> UEFITool's tree view showed no sign of
-        the 16-byte wipe; only a binary compare caught it.</li>
-      <li><strong>Check every volume, not just the one you edited.</strong> UEFITool 0.28 can rebuild neighboring volumes on save.</li>
-      <li><strong>Keep a full 16 MB backup</strong> and flash only the BIOS region, so the descriptor and ME are never at risk.</li>
-    </ul>
+    <p>
+      Diff the patched image against your original dump before flashing. UEFITool's tree view looked completely normal,
+      and only the binary compare showed the 16-byte wipe. Check every volume while you're at it, since UEFITool 0.28
+      can rebuild ones you never edited. And keep a full 16 MB backup and flash only the BIOS region, so the descriptor
+      and ME stay out of harm's way.
+    </p>
 
   </div>
 </body>

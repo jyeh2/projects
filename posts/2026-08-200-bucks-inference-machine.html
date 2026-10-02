@@ -15,9 +15,9 @@
     <h1>200 Bucks Inference Machine</h1>
 
     <p class="meta">
-      A local LLM inference server built on secondhand mining hardware, running full GPU-resident inference for around $200 in parts.
-      Updated September 2026: down to one card, with the software work (KV cache reuse and model benchmarks) moved
-      to its own pages.
+      A local LLM inference server on secondhand mining hardware, about $200 in parts, with the whole model on the GPU.
+      Updated September 2026: it's down to one card now, and the software work (KV cache reuse and model benchmarks)
+      has its own pages.
     </p>
 
     <div class="highlights">
@@ -42,41 +42,39 @@
     <h2>Overview</h2>
 
     <p>
-      This project turns a Huananzhi X99 BD4 motherboard and two CMP 40HX mining GPUs into a working inference box.
-      The goal was privacy first: proprietary GPU board schematics purchased for a separate repair project should
-      never be sent to an external LLM API, so the only real option was to build something local and capable enough
-      to run a real model at usable context length.
+      This is a Huananzhi X99 BD4 motherboard and two CMP 40HX mining GPUs turned into an inference box. I built it
+      for privacy. I'd bought proprietary GPU board schematics for a separate repair project, and I didn't want
+      those going to an external LLM API, so I needed something local that could run a real model at a usable
+      context length.
     </p>
 
     <h2>Hardware</h2>
 
     <p>
-      The board is a Huananzhi X99 BD4, originally paired with two CMP 40HX cards (TU106, compute capability
-      <code>sm_75</code>, 8GB VRAM each). One of the two cards has since died, so the machine now runs on a single
-      8GB card, with only 7.7GB of system RAM next to it. Everything below was sized around that. CMP cards ship without display output and with reduced driver support since they were designed
-      for mining, not compute workloads, so getting them recognized properly took some work.
+      The board is a Huananzhi X99 BD4, originally with two CMP 40HX cards (TU106, compute capability
+      <code>sm_75</code>, 8GB VRAM each). One card has since died, so the machine runs on a single 8GB card with only
+      7.7GB of system RAM next to it, and everything below is sized around that. CMP cards were made for mining, so
+      they have no display output and limited driver support, and getting them recognized properly took some work.
     </p>
 
     <p id="pcie">
-      One of the bigger hardware fixes was a PCIe lane negotiation issue. The cards were not initially negotiating
-      full x16, which capped throughput. AC coupling capacitors soldered directly onto the PCIe lanes resolved this
-      and unlocked full x16 negotiation on both cards. Measured on this machine, model load time dropped
+      The cards weren't negotiating full x16 at first, which capped throughput. Soldering AC coupling capacitors
+      onto the PCIe lanes fixed it and got both cards to x16. On this machine, model load time dropped
       <strong>46%</strong>.
     </p>
 
     <p>
-      Idle power draw is managed with a systemd service, <code>cap-cmp40hx.service</code>, that locks GPU clocks to
-      300 MHz when the cards are not in use, bringing idle draw down to around 12 to 15 watts. Before running
-      inference, clocks need to be manually reset with <code>nvidia-smi -rgc</code>, otherwise the locked clock
-      caps performance.
+      A systemd service, <code>cap-cmp40hx.service</code>, locks the GPU clocks to 300 MHz when the cards are idle,
+      which brings idle draw down to around 12 to 15 watts. Before running inference I have to reset the clocks
+      with <code>nvidia-smi -rgc</code>, or the locked clock caps performance.
     </p>
 
     <p id="clocks">
-      Forgetting that step is expensive. In one session the GPU showed 100% utilization but sat at 300 MHz and 35W,
+      Forgetting that is expensive. In one session the GPU showed 100% utilization but sat at 300 MHz and 35W,
       processing prompts at about 18 tokens per second. Once the clock came up to 1935 MHz, the same work ran at about
-      190 tokens per second, roughly 10x faster. A 15.6k-token agent prompt went from an estimated 17 minutes before the first
-      token to about 80 seconds. <code>nvidia-smi dmon -s uc</code> is the quick check: if <code>pclk</code> reads
-      300 under load, the cap is still on.
+      190 tokens per second, roughly 10x faster. A 15.6k-token agent prompt went from an estimated 17 minutes to first
+      token down to about 80 seconds. The quick check is <code>nvidia-smi dmon -s uc</code>: if <code>pclk</code>
+      reads 300 under load, the cap is still on.
     </p>
 
     <a href="#img1"><img src="../assets/inference-machine/setup.jpg" alt="Two CMP 40HX mining GPUs mounted on the Huananzhi X99 BD4 motherboard"></a>
@@ -85,79 +83,74 @@
     <h2 id="software">Software</h2>
 
     <p>
-      With one card left, the everyday model is <strong>Gemma 4 E4B</strong> through Ollama (llama.cpp): about 4B
-      active parameters, a per-layer embedding table kept in system RAM, and mostly sliding-window attention, so its
-      KV cache stays small on an 8GB card. It does schema-constrained extraction for my job-application pipeline.
+      With one card left, the everyday model is Gemma 4 E4B through Ollama (llama.cpp). It has about 4B active
+      parameters, keeps a per-layer embedding table in system RAM, and uses mostly sliding-window attention, so its
+      KV cache stays small enough for an 8GB card. I use it for schema-constrained extraction in my job-application
+      pipeline.
     </p>
 
     <p>
-      The software work now has its own pages:
+      The software work has its own pages now:
     </p>
 
     <ul>
-      <li><a href="2026-09-kvsnap-kv-cache-reuse.html"><strong>kvsnap: KV cache reuse</strong></a>: the serving
-        stack, llama.cpp slot snapshots, and getting Gemma's cached prefix to work on mistral.rs (54 s &rarr; 0.27 s
-        time to first token), including a token-level check that the cached answers match.</li>
-      <li><a href="2026-09-local-llm-extraction-benchmark.html"><strong>Four small LLMs on one 8GB card</strong></a>:
-        why Gemma 4 E4B, benchmarked against three Qwen models, and the same models rerun on llama.cpp and
-        mistral.rs.</li>
+      <li><a href="2026-09-kvsnap-kv-cache-reuse.html">kvsnap: KV cache reuse</a> covers the serving stack, llama.cpp
+        slot snapshots, and getting Gemma's cached prefix working on mistral.rs (54 s &rarr; 0.27 s to first token),
+        plus a token-level check that the cached answers match.</li>
+      <li><a href="2026-09-local-llm-extraction-benchmark.html">Four small LLMs on one 8GB card</a> covers why I picked
+        Gemma 4 E4B over three Qwen models, and the same models rerun on llama.cpp and mistral.rs.</li>
     </ul>
 
     <a href="#img2"><img src="../assets/inference-machine/nvidia-smi.jpg" alt="nvidia-smi output showing a recognized CMP 40HX"></a>
     <a class="lightbox" id="img2" href="#"><img src="../assets/inference-machine/nvidia-smi.jpg" alt="nvidia-smi output showing a recognized CMP 40HX"></a>
 
-    <h2>Community context</h2>
+    <h2>What others have found</h2>
 
     <p>
-      CMP mining cards are a known genre of budget hardware experimentation, mostly documented outside
-      English-language sources. Two references shaped how this build was approached.
+      People have been experimenting with CMP mining cards as cheap hardware for a while, mostly outside
+      English-language sources. Two of those shaped how I approached this build.
     </p>
 
     <p>
-      A Bilibili video from the channel 吃饭团的佳乐同学, part of a long running series on modded mining cards,
-      benchmarks a modded 40HX against an RTX 2060 Super and RTX 2060. Their numbers put theoretical performance at
-      least 10 percent ahead of the 2060 Super, with gaming performance about 20 percent behind the 2060 Super but
-      7 percent ahead of the plain 2060, and productivity or video editing work landing close to the 2060 Super.
-      Deep learning performance was left unverified in that video, which is part of why this project exists as its
-      own writeup.
+      A Bilibili video from the channel 吃饭团的佳乐同学, part of a long series on modded mining cards, benchmarks a
+      modded 40HX against an RTX 2060 Super and an RTX 2060. In their numbers, theoretical performance is at least 10
+      percent ahead of the 2060 Super. Gaming is about 20 percent behind the 2060 Super but 7 percent ahead of the
+      plain 2060, and productivity and video editing land close to the 2060 Super. They didn't test deep learning,
+      which is part of why I wrote this up.
     </p>
 
     <p>
-      A more directly relevant source is a Habr article by Oleg titled "Dark horses of AI," covering LLM inference
-      specifically on the CMP 40HX, 50HX, and 90HX line. It confirms the same pattern seen in this build: synthetic
-      FP32 benchmarks make these cards look ten times slower than older gaming GPUs, but real LLM inference
-      throughput lands close to an RTX 2060 or 3060, around 30 tokens per second on 8B models. The article traces
-      this to Ollama and similar frameworks running inference primarily in FP16 rather than FP32, and FP16
-      throughput on these cards is nowhere near as crippled as FP32 is, in some cases beating an RTX 3060 outright.
+      Closer to what I'm doing is a Habr article by Oleg, "Dark horses of AI," on LLM inference with the CMP 40HX,
+      50HX and 90HX. It matches what I saw: in synthetic FP32 benchmarks these cards look ten times slower than older
+      gaming GPUs, yet real LLM inference lands close to an RTX 2060 or 3060, around 30 tokens per second on 8B
+      models. The article explains that Ollama and similar frameworks run inference mostly in FP16, and FP16 on these
+      cards is nowhere near as crippled as FP32. In some cases it beats an RTX 3060.
     </p>
 
     <p>
-      The article also independently confirms the PCIe capacitor fix used on this build. Mining cards typically
-      ship with capacitors populated only for 4 lanes even though the board supports 16, and soldering 0402 package
-      100 or 220 nanofarad capacitors onto the remaining lanes physically unlocks the missing width. Their testing
-      found that lane width barely affects raw token throughput, roughly a percent or two gain from 4 lanes to 16,
-      since 8 lanes already clears the bottleneck for inference. The real benefit is model and context load time,
-      which improved by close to half going from 4 lanes to 16 in their tests. That lines up with why this build
-      targeted full x16 negotiation — the win is in how fast the server comes up and reloads context, not raw
-      tokens per second.
+      The same article also describes the PCIe capacitor fix I used. Mining cards usually ship with capacitors for
+      only 4 lanes even though the board supports 16, and soldering 0402 100 or 220 nanofarad capacitors onto the rest
+      unlocks the missing lanes. In their testing, lane width barely changes token throughput (a percent or two from
+      4 lanes to 16), since 8 lanes is already enough for inference. Model and context load time is where it helps,
+      improving by close to half from 4 lanes to 16. That's why I went for full x16: the server comes up and reloads
+      context faster.
     </p>
 
-    <h2>Why this approach</h2>
+    <h2>Why build it</h2>
 
     <p>
-      Off the shelf cloud inference is fast to set up but sends everything, including sensitive or proprietary
-      data, off device. This project exists to prove that a genuinely usable local setup is achievable on a tight
-      budget using hardware most people would consider unsuitable for the job. Mining cards not designed for
-      this workload, a patched build, and a few soldered joints turned into a machine that runs a real model at
-      real context length, entirely under local control. Losing a card cost capacity, not usefulness: one 8GB card
+      Cloud inference is quick to set up, but everything you send it, sensitive or proprietary data included, leaves
+      your machine. I wanted to see whether a usable local setup could be built on a tight budget from hardware most
+      people would write off for this. Mining cards, a patched build and a few soldered joints ended up running a real
+      model at real context length, all on my own hardware. Losing a card cost capacity, and the one 8GB card left
       still runs a model that beat an 8B competitor on the work I actually give it.
     </p>
 
     <h2>References</h2>
 
     <ul>
-      <li><a href="https://habr.com/en/articles/940226/">Dark Horses of AI – LLM Inference on Nvidia CMP Mining GPUs 40HX, 50HX, 90HX (Habr, Oleg)</a></li>
-      <li><a href="https://www.bilibili.com/video/BV1em4y1n7wH/">吃饭团的佳乐同学 — modded CMP 40HX benchmark vs RTX 2060 Super / 2060 (Bilibili)</a></li>
+      <li><a href="https://habr.com/en/articles/940226/">Dark Horses of AI: LLM Inference on Nvidia CMP Mining GPUs 40HX, 50HX, 90HX (Habr, Oleg)</a></li>
+      <li><a href="https://www.bilibili.com/video/BV1em4y1n7wH/">吃饭团的佳乐同学: modded CMP 40HX benchmark vs RTX 2060 Super / 2060 (Bilibili)</a></li>
     </ul>
 
   </div>

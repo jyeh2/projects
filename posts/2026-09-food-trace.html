@@ -30,9 +30,9 @@
     </p>
 
     <ul>
-      <li><strong>Who</strong> handled the batch at each stage (farm, processing, distribution, retail).</li>
-      <li>That they were <strong>physically at the station</strong> when they recorded it.</li>
-      <li>That the <strong>photo and details</strong> they recorded haven't been changed since.</li>
+      <li>Who handled the batch at each stage (farm, processing, distribution, retail).</li>
+      <li>That they were physically at the station when they recorded it.</li>
+      <li>That the photo and details they recorded haven't been changed since.</li>
     </ul>
 
     <a href="#img1"><img src="../assets/food-trace/architecture.jpg" alt="FoodTrace architecture: farmer mints a batch, station shows a rotating QR, phone scans and takes a photo, the hash goes to a Solana NFT, and a consumer verifies. Backed by a Next.js API, Cloudflare D1 and an AI report agent."></a>
@@ -44,7 +44,7 @@
 
     <p>
       A farmer org logs in, names the product, and sets a location. The server mints a
-      <strong>Metaplex Core NFT</strong> on Solana (devnet) for the batch. Its on-chain <em>Attributes</em> plugin
+      Metaplex Core NFT on Solana (devnet) for the batch. Its on-chain <em>Attributes</em> plugin
       starts with the batch ID, origin and creation time. The app prints a product QR code that points at the batch.
     </p>
 
@@ -74,10 +74,10 @@
     <p>The server then checks, in order:</p>
 
     <ul>
-      <li>the org is logged in, and its <strong>role</strong> may record this stage (farmers record stage 1, processors
+      <li>the org is logged in, and its role may record this stage (farmers record stage 1, processors
         stage 2, and so on);</li>
       <li>the station code is valid for this stage right now;</li>
-      <li>stages happen <strong>in order</strong>: you can't record retail before distribution.</li>
+      <li>stages happen in order: you can't record retail before distribution.</li>
     </ul>
 
     <p>
@@ -90,8 +90,8 @@
 
     <p>
       The server appends an attribute to the batch NFT: <code>stage:N = photoHash|timestamp|actor|snapshotHash</code>.
-      The NFT becomes an append-only log of the batch's journey. The server refuses to write a stage that's already
-      on-chain, so a later edit shows up as a mismatch rather than a quiet overwrite.
+      That makes the NFT an append-only log of where the batch has been. The server refuses to write a stage that's already
+      on-chain, so editing a stage later shows up as a mismatch.
     </p>
 
     <p>
@@ -108,8 +108,8 @@
     </p>
 
     <ul>
-      <li>downloads the stored photo from R2 and <strong>re-hashes it</strong>;</li>
-      <li>reads the NFT's attributes <strong>directly from Solana</strong>;</li>
+      <li>downloads the stored photo from R2 and re-hashes it;</li>
+      <li>reads the NFT's attributes directly from Solana;</li>
       <li>compares the two, and does the same for the org snapshot hash.</li>
     </ul>
 
@@ -127,7 +127,7 @@
     <p>
       Each batch also gets a shareable product report. A tool-calling agent (Vercel AI SDK, IFM's K2 model) reads the
       batch, stages, org profiles and on-chain attributes through read-only tools. It then writes a
-      <strong>schema-checked</strong> JSON report (Zod): a consumer-friendly origin story and journey, plus an
+      schema-checked JSON report (Zod): a consumer-friendly origin story and journey, plus an
       auditor appendix with every hash and transaction. The prompt forbids inventing stages, orgs or hashes.
     </p>
 
@@ -140,25 +140,25 @@
     <h2>Stack</h2>
 
     <ul>
-      <li><strong>App:</strong> Next.js, deployed to Cloudflare Workers through OpenNext; GitHub Actions runs lint,
+      <li>App: Next.js, deployed to Cloudflare Workers through OpenNext; GitHub Actions runs lint,
         tests and deploy on every push to <code>main</code>.</li>
-      <li><strong>Data:</strong> Cloudflare D1 (SQLite) for orgs, batches, stages and cached reports; R2 for photos.</li>
-      <li><strong>Chain:</strong> Solana devnet, Metaplex Core via Umi. Public devnet RPC returns 403 to Cloudflare
+      <li>Data: Cloudflare D1 (SQLite) for orgs, batches, stages and cached reports; R2 for photos.</li>
+      <li>Chain: Solana devnet, Metaplex Core via Umi. Public devnet RPC returns 403 to Cloudflare
         Workers, so it uses MagicBlock's devnet RPC by default.</li>
-      <li><strong>AI:</strong> a vision model through OpenRouter for photo checks, and IFM K2 for reports.</li>
+      <li>AI: a vision model through OpenRouter for photo checks, and IFM K2 for reports.</li>
     </ul>
 
     <h2>My part</h2>
 
     <p>
-      My main contribution was the <strong>org and permissions layer</strong>:
+      I mostly worked on the org and permissions layer:
     </p>
 
     <ul>
-      <li><strong>Org accounts</strong> with role-based permissions: which role can mint a batch and which stage each
+      <li>Org accounts with role-based permissions, covering which role can mint a batch and which stage each
         role may record, including splitting the original "supplier" role into processor and distributor.</li>
-      <li><strong>Org snapshots:</strong> copying the org's location and role-specific fields onto each stage when it's
-        recorded, and putting the snapshot's hash on-chain next to the photo hash. A later edit to an org's profile
+      <li>Org snapshots, which copy the org's location and role-specific fields onto each stage when it's
+        recorded and put the snapshot's hash on-chain next to the photo hash. Editing an org's profile later
         can't rewrite history, and the verify page can prove it.</li>
       <li>Replacing station display keys with a station picker in the UI, gating the dashboard behind login, and a
         batch of mobile and dark-mode fixes for the scan flow.</li>
@@ -172,13 +172,13 @@
     <h2>What I'd change</h2>
 
     <ul>
-      <li><strong>Proof of presence is only as good as the station screen.</strong> Anyone who can see the screen, or
-        a live photo of it, can record a stage. Signing with a key held by the station device, or checking phone GPS
+      <li>Anyone who can see the screen, or
+        a live photo of it, can record a stage, so proof of presence is only as good as the station screen. Signing with a key held by the station device, or checking phone GPS
         against the station's location, would tighten it.</li>
-      <li><strong>The server signs everything.</strong> One server keypair writes every stage, so the chain proves
+      <li>One server keypair writes every stage, so the chain proves
         the <em>server</em> recorded a hash, not which org did. Having each org sign its own stage would remove that
         trust in the operator.</li>
-      <li><strong>A full-list replace per stage.</strong> Each update rewrites the whole attribute list. That's fine
+      <li>Each stage update rewrites the whole attribute list. That's fine
         for four stages, but a real supply chain would want an append-only account or compressed records.</li>
     </ul>
 

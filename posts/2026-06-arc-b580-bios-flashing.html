@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Intel Arc B580 firmware debugging — part 3 (CH341A physical flash)</title>
+  <title>Intel Arc B580 firmware debugging, part 3 (CH341A physical flash)</title>
   <link rel="stylesheet" href="../assets/style.css">
 </head>
 
@@ -11,13 +11,13 @@
 
     <a href="../index.html">← back</a>
 
-    <h1>Intel Arc B580 firmware debugging — part 3 (CH341A physical flash)</h1>
+    <h1>Intel Arc B580 firmware debugging, part 3 (CH341A physical flash)</h1>
 
     <p class="meta">
-      Continuing from the opromdata &amp; VBT dissection — physical SPI dump, binary comparison, and the working firmware write.
+      Picking up from the opromdata &amp; VBT dissection: dumping the SPI chip, comparing it against a good card, and writing the working firmware.
     </p>
 
-    <h2>CH341A preparation — killing the 5V line</h2>
+    <h2>CH341A prep: killing the 5V line</h2>
 
     <p>
       Stock CH341A programmers are not safe to use on modern SPI flash chips without modification. Or so they say, Im doing it anyways. 3.3v feels safer than 5v when its the flashers says 3.3v operation.
@@ -34,32 +34,31 @@
     <h2>Dumping the SPI flash</h2>
 
     <p>
-      The SPI flash on the ASRock B580 Challenger was accessed via SOIC8 clip with the card fully
-      powered off and disconnected from the system. The dump was read three times. All three reads
-      diffed as identical, confirming a clean capture. The Asrock variant of the b580 uses a GigaDevice 8MB 25LB64ESIG
+      I got to the SPI flash on the ASRock B580 Challenger with a SOIC8 clip, with the card fully
+      powered off and out of the system. I read it three times and all three dumps diffed identical,
+      so the capture was clean. The Asrock variant of the b580 uses a GigaDevice 8MB 25LB64ESIG
     </p>
 
     <p>
-      A second physical ASRock B580 Challenger was sourced and the same procedure was repeated under
-      identical conditions to produce another bios dump as a known-good reference.
+      Then I got hold of a second ASRock B580 Challenger and dumped it the same way, to have a known-good bios to compare against.
     </p>
 
     <h2>Binary comparison: b580true1.bin vs b580working.bin</h2>
 
     <p>
-      Both images share the same overall SPI layout. The following regions are byte-for-byte identical. Im still on the edge of whether to share it with the firmware matrix yet, but likely claude probably already has it lol
-      between the two dumps:
+      Both images have the same SPI layout, and these regions are byte-for-byte identical between the two dumps
+      (Im still on the edge of whether to share it with the firmware matrix yet, but likely claude probably already has it lol):
     </p>
 
     <ul>
       <li>FPT partition structure</li>
-      <li>fwcode version — 21.1098 on both</li>
-      <li>FITB partition — all <code>0xFF</code> on both, meaning neither card has a populated backup firmware slot</li>
-      <li>Primary VBT block — 7,287 bytes, identical in both images</li>
+      <li>fwcode version: 21.1098 on both</li>
+      <li>FITB partition: all <code>0xFF</code> on both, so neither card has anything in its backup firmware slot</li>
+      <li>Primary VBT block: 7,287 bytes, identical in both</li>
     </ul>
 
     <p>
-      The divergence is entirely in the opromdata region. In <code>b580working.bin</code>, the OROM manifest
+      Where they differ is the opromdata region. In <code>b580working.bin</code>, the OROM manifest
       entry (<code>a-OROM.man</code>) sits at the expected offset within the <code>$CPD</code> partition,
       correctly aligned. In <code>b580true1.bin</code>, that same manifest entry is shifted 16 bytes forward
       from where it should be.
@@ -67,29 +66,28 @@
 
     <p>
       The OROM code build also differs between the two: build 1051 in the working image versus build 1065
-      in the corrupted one. This suggests the card had received a partial or interrupted opromdata update
-      at some point that shifted the manifest without completing cleanly — consistent with the card's history
+      in the corrupted one. My guess is the card got a partial or interrupted opromdata update
+      at some point that shifted the manifest and never finished, which fits the card's history
       of occasional PCODE failures before things became permanent.
     </p>
 
     <p>
-      Critically, both opromdata slots on the corrupted card (A and B) carried the same 16-byte shift.
-      The two slots were identical to each other. There was no clean copy anywhere on chip to recover from.
+      Both opromdata slots on the corrupted card (A and B) had the same 16-byte shift and were identical
+      to each other, so there was no clean copy anywhere on the chip to recover from.
     </p>
 
     <h2>Writing the working firmware</h2>
 
     <p>
-      The working firmware from <code>b580working.bin</code> was written to the SPI chip via CH341A
-      and verified with a full readback diff. The write confirmed byte-for-byte identical to the source image.
+      I wrote the firmware from <code>b580working.bin</code> to the SPI chip with the CH341A, then read it
+      back and diffed it. It came back byte-for-byte identical to the source image.
     </p>
 
     <h2>Post-flash state</h2>
 
     <p>
-      The card stabilised enough to reach desktop and run light workloads at 720p low settings.
-      Artifacting and crashes appeared under heavier load at 1080p medium settings. FurMark produced
-      a DMA violation BSOD on Windows with ReBAR enabled.
+      The card was stable enough to reach the desktop and run light stuff at 720p low. At 1080p medium
+      it started artifacting and crashing, and FurMark gave me a DMA violation BSOD on Windows with ReBAR enabled.
     </p>
 
     <p>
