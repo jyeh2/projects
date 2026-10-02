@@ -26,13 +26,14 @@
           <p>Farm-to-shelf provenance: each batch is a Solana NFT, stations prove presence with rotating HMAC QR codes, and anyone can re-hash photos against the chain.</p>
           <div class="tags"><span class="tag">Next.js</span><span class="tag">Solana</span><span class="tag">Cloudflare</span></div>
         </a>
-        <a class="card pin" href="https://github.com/HKN-UCSD/hkn-portal">
+        <div class="card pin">
           <span class="num">~2,300</span>
           <span class="what">monthly users on a production web app</span>
-          <h3>HKN Member Portal</h3>
-          <p>Django and Svelte member portal for UCSD's HKN chapter, deployed on AWS.</p>
-          <div class="tags"><span class="tag">Django</span><span class="tag">Svelte</span><span class="tag">AWS</span></div>
-        </a>
+          <h3><a href="https://portal.hknucsd.com">HKN Member Portal</a></h3>
+          <p>UCSD HKN's member portal: a Django REST API and Svelte/Tailwind app for events, induction and outreach hours, deployed to AWS EC2 by GitHub Actions.</p>
+          <p class="pin-links"><a href="https://portal.hknucsd.com">Live site</a> &middot; <a href="https://github.com/HKN-UCSD/hkn-portal">Source</a></p>
+          <div class="tags"><span class="tag">Django REST</span><span class="tag">Svelte</span><span class="tag">AWS</span><span class="tag">GitHub Actions</span></div>
+        </div>
         <a class="card pin" href="posts/2026-09-kvsnap-kv-cache-reuse.html">
           <span class="num">200&times; faster</span>
           <span class="what">time to first token, 54 s &rarr; 0.27 s on a 15.6k-token prompt</span>
@@ -130,11 +131,13 @@
       <div class="card">
         <img src="assets/cards/hkn-portal.jpg" alt="HKN Member Portal screenshot">
         <div class="card-body">
-          <h3><a href="https://github.com/HKN-UCSD/hkn-portal">HKN Member Portal</a></h3>
-          <p>Django and Svelte web app for HKN, deployed on AWS, serving about 2300 monthly users.</p>
+          <h3><a href="https://portal.hknucsd.com">HKN Member Portal</a></h3>
+          <p>Member portal for UCSD's HKN chapter with about 2,300 monthly users. A Django REST Framework API serves a Svelte and Tailwind single-page app for events, induction, outreach hours and interview scheduling, with email through Amazon SES and Google Sheets sync. Pushes to master deploy to AWS EC2 through GitHub Actions.</p>
+          <p class="pin-links"><a href="https://portal.hknucsd.com">Live site</a> &middot; <a href="https://github.com/HKN-UCSD/hkn-portal">Source</a></p>
           <div class="tags">
-            <span class="tag">Django</span>
+            <span class="tag">Django REST</span>
             <span class="tag">Svelte</span>
+            <span class="tag">Tailwind</span>
             <span class="tag">AWS</span>
           </div>
         </div>

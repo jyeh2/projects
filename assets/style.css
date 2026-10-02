@@ -453,3 +453,10 @@ a.stat:hover {
     grid-template-columns: 1fr;
   }
 }
+.card .pin-links {
+  font-size: 0.88em;
+  flex: 0;
+}
+div.card.pin:hover {
+  transform: none;
+}
