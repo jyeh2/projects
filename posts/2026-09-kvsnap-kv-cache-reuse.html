@@ -20,7 +20,7 @@
       models. September 2026.
     </p>
 
-    <p class="series">X99 build series: <a href="2026-08-200-bucks-inference-machine.html">The build</a> &middot; <a class="current" href="2026-09-kvsnap-kv-cache-reuse.html">mistral.rs vs llama.cpp</a> &middot; <a href="2026-09-local-llm-extraction-benchmark.html">Four LLMs compared</a> &middot; <a href="2026-10-x99-rebar-flashing.html">ReBar BIOS mod</a> &middot; <a href="2026-10-cmp40hx-unlock.html">CMP 40HX unlock</a></p>
+    <p class="series">X99 build series: <a href="2026-08-200-bucks-inference-machine.html">The build</a> &middot; <a class="current" href="2026-09-kvsnap-kv-cache-reuse.html">mistral.rs vs llama.cpp</a> &middot; <a href="2026-09-local-llm-extraction-benchmark.html">Four LLMs compared</a> &middot; <a href="2026-09-wake-on-lan-retrofit.html">Wake on LAN</a> &middot; <a href="2026-10-x99-rebar-flashing.html">ReBar BIOS mod</a> &middot; <a href="2026-10-cmp40hx-unlock.html">CMP 40HX unlock</a></p>
 
     <p class="summary">
       A 15.6k-token prompt took 54&ndash;85 s to first token on one 8GB card. On mistral.rs with a 17-line patch, reusing its cached prefix brought that to 0.27 s, and 8 of 10 test answers came out token-for-token identical to recomputing. On ordinary requests, Gemma also ran 37% faster on mistral.rs than on llama.cpp, at the cost of 0.9&ndash;3.0 GB more GPU memory.
