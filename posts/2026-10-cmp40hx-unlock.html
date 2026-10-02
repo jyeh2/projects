@@ -1,0 +1,192 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CMP 40HX Unlock on X99</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+
+<body>
+  <div class="container">
+
+    <a href="../index.html">&larr; back</a>
+
+    <h1>Unlocking PCIe 2.0, Resizable BAR and FP16 on the CMP 40HX</h1>
+
+    <p class="meta">
+      Running the cmpunlocker driver patches on the CMP 40HX in the <a href="2026-08-200-bucks-inference-machine.html">200 Bucks Inference Machine</a>,
+      and getting PCIe Gen2 to train on an X99 root port where the driver's own retrain fails. October 2026.
+    </p>
+
+    <p class="series">X99 build series: <a href="2026-08-200-bucks-inference-machine.html">The build</a> &middot; <a href="2026-09-kvsnap-kv-cache-reuse.html">mistral.rs vs llama.cpp</a> &middot; <a href="2026-09-local-llm-extraction-benchmark.html">Four LLMs compared</a> &middot; <a href="2026-10-x99-rebar-flashing.html">ReBar BIOS mod</a> &middot; <a class="current" href="2026-10-cmp40hx-unlock.html">CMP 40HX unlock</a></p>
+
+    <p class="summary">
+      The CMP 40HX ships locked to PCIe Gen1, a 64 MiB BAR1 and crippled FP16. The <a href="https://github.com/Cyridd/cmpunlocker">cmpunlocker</a>
+      patches to NVIDIA's open kernel driver lift all three without touching the VBIOS. Compute and ReBAR worked on the first boot. Gen2
+      didn't: the driver's link retrain failed on the X99 root port. A second retrain triggered by hand from the root port brought the link up at 5 GT/s.
+      FP16 throughput went up 55&times;, prompt processing about 12&times;, token generation 2&times;, and host-to-GPU bandwidth doubled.
+    </p>
+
+    <div class="highlights">
+      <a class="stat" href="#results">
+        <span class="num">0.98 &rarr; 54.4 TFLOPS</span>
+        <span class="what">FP16 cuBLAS GEMM after the compute unlock</span>
+      </a>
+      <a class="stat" href="#results">
+        <span class="num">121 &rarr; 1,514 tok/s</span>
+        <span class="what">Qwen3 8B prompt processing in Ollama, with generation going from 30.6 to 62 tok/s</span>
+      </a>
+      <a class="stat" href="#gen2">
+        <span class="num">Gen1 &rarr; Gen2 x16</span>
+        <span class="what">Link up at 5 GT/s after a manual retrain from the root port</span>
+      </a>
+      <a class="stat" href="#results">
+        <span class="num">64 MiB &rarr; 8 GiB</span>
+        <span class="what">BAR1 aperture, using the ReBarDxe BIOS mod from the previous post</span>
+      </a>
+    </div>
+
+    <h2>Why</h2>
+
+    <p>
+      The CMP 40HX is a TU106 (the RTX 2060 Super / 2070 die) sold for mining, and NVIDIA limited it so it couldn't compete with
+      gaming cards. The <a href="2026-08-200-bucks-inference-machine.html">capacitor mod</a> already got the card to x16, but the link
+      still ran at Gen1 (2.5 GT/s, about 3.1 GB/s in practice). On top of that, FP16 cuBLAS ran at under 1 TFLOPS, which is the
+      path Ollama uses for prompt processing.
+    </p>
+
+    <p>
+      cmpunlocker is a set of patches to NVIDIA's open-gpu-kernel-modules 610.57.04. It changes the GSP/SEC2 boot path to restore the
+      SM configuration, opens the GSP PCIe policy for Gen2 and retrains the link, and enables the card's ReBAR capability. Nothing is
+      written to the VBIOS. The unlock is reapplied every time the driver loads, so turning the machine off returns the card to stock.
+    </p>
+
+    <div class="table-wrap"><table class="data">
+      <tr><th>Item</th><th>Details</th></tr>
+      <tr><td>GPU</td><td>NVIDIA CMP 40HX (TU106, <code>10de:1f0b</code>), 8 GB, VBIOS 90.06.67.00.04, x16 after the capacitor mod</td></tr>
+      <tr><td>Motherboard</td><td>Huananzhi X99-BD4, BIOS 5.11 with ReBarDxe inserted (ReBarState 32, unlimited), Above 4G Decoding on</td></tr>
+      <tr><td>CPU</td><td>Intel Xeon E5-2678 v3, card on root port <code>00:02.0</code> (PCIe 3.0 capable)</td></tr>
+      <tr><td>OS</td><td>Ubuntu 22.04.5, kernel 5.15.0-191, Secure Boot off, headless</td></tr>
+      <tr><td>Driver</td><td>Before: 580.178.04 server, closed kernel module. After: 610.57.04 open, patched by cmpunlocker</td></tr>
+    </table></div>
+
+    <h2>Installing</h2>
+
+    <ol>
+      <li>I measured a baseline on the stock 580 driver first: bandwidth, cuBLAS GEMM, Ollama prompt and generation speed, and model load time.</li>
+      <li>I switched to the open kernel driver at the exact version the patches target: <code>sudo apt install nvidia-driver-610-open</code>,
+        then held the packages so apt can't upgrade them out from under the patches.</li>
+      <li>I ran <code>sudo ./install.sh</code>. It downloads the 610.57.04 source, checks its SHA-256, applies the three patches, builds the
+        modules and installs them to <code>/lib/modules/$(uname -r)/updates/cmpunlocker/</code>.</li>
+      <li>I powered the machine fully off and back on. A warm reboot isn't enough.</li>
+    </ol>
+
+    <a href="#img1"><img src="../assets/cmp40hx-unlock/install.png" alt="nvidia-smi on driver 610.57.04 and the cmpunlocker installer detecting the CMP 40HX on Ubuntu 22.04"></a>
+    <a class="lightbox" id="img1" href="#"><img src="../assets/cmp40hx-unlock/install.png" alt="nvidia-smi on driver 610.57.04 and the cmpunlocker installer detecting the CMP 40HX on Ubuntu 22.04"></a>
+
+    <p>
+      One thing to check afterwards: the stock DKMS build of the same driver sits in <code>updates/dkms/</code> right next to the patched
+      one. <code>modinfo nvidia | grep filename</code> should point at <code>updates/cmpunlocker/</code>, and on my machine it did.
+    </p>
+
+    <h2 id="gen2">PCIe Gen2: the driver's retrain fails on X99</h2>
+
+    <p>
+      After the cold boot, <code>dmesg</code> showed the compute unlock passing (<code>SS0=0x88888888 SS1=0x00000008 FECS_PLM=0xffffff8f</code>)
+      and <code>nvidia-smi</code> reported an 8192 MiB BAR1. The link was still at 2.5 GT/s, and the last line of the log explained why:
+    </p>
+
+    <pre><code>CMP40_PCIE_GEN2_V2: RETRAIN_FAIL status=1101</code></pre>
+
+    <a href="#img2"><img src="../assets/cmp40hx-unlock/dmesg-retrain-fail.png" alt="dmesg showing the CMP40 compute unlock passing and the PCIe Gen2 retrain failing with status 1101"></a>
+    <a class="lightbox" id="img2" href="#"><img src="../assets/cmp40hx-unlock/dmesg-retrain-fail.png" alt="dmesg showing the CMP40 compute unlock passing and the PCIe Gen2 retrain failing with status 1101"></a>
+
+    <p>
+      The project's diagnostic notes describe this exact failure on VBIOS .04, and fix it by unbinding and rebinding the driver. Its
+      Gen2 retrain was verified on an AMD root port, while an Intel Alder Lake test hit trouble, and I couldn't find any reports from X99.
+      The log also shows the driver had already set a Gen2 target (<code>bits[19:18]=2</code>) on both ends. The retrain itself had failed.
+      So instead of reloading the driver, I stopped everything using the GPU and asked the root port to retrain once more by setting the
+      Retrain Link bit in its Link Control register:
+    </p>
+
+    <pre><code>sudo systemctl stop ollama nvidia-persistenced
+sudo setpci -s 00:02.0 CAP_EXP+10.w=0020
+sudo lspci -vvv -s 03:00.0 | grep 'LnkSta:'
+sudo systemctl start nvidia-persistenced ollama</code></pre>
+
+    <p>
+      This time the link trained at 5 GT/s x16 on both ends. The root port's "downgraded" just means it can do 8 GT/s and settled at the
+      card's 5. Loading a model and running the full benchmark set left the link at 5 GT/s throughout, and the compute unlock and 8 GiB BAR1 stayed in place.
+      <code>dmesg</code> showed no AER or Xid errors afterwards.
+    </p>
+
+    <a href="#img3"><img src="../assets/cmp40hx-unlock/gen2-retrain.png" alt="setpci retrain of root port 00:02.0 followed by LnkSta showing 5GT/s x16 on the CMP 40HX"></a>
+    <a class="lightbox" id="img3" href="#"><img src="../assets/cmp40hx-unlock/gen2-retrain.png" alt="setpci retrain of root port 00:02.0 followed by LnkSta showing 5GT/s x16 on the CMP 40HX"></a>
+
+    <p>
+      One caveat about that command: without a mask, setpci writes the whole 16-bit register, so it also cleared the port's other
+      Link Control bits, ASPM and Common Clock Configuration among them. The masked form
+      <code>setpci -s 00:02.0 CAP_EXP+10.w=0020:0020</code> sets only the Retrain Link bit. I haven't tested whether the masked form
+      trains to Gen2 as well, since clearing those bits may be part of why it worked. Since the unlock resets on a power cycle, this
+      step has to run after every cold boot.
+    </p>
+
+    <h2 id="results">Results</h2>
+
+    <p>
+      Same machine, same models, same scripts. Each number is the median of 3 to 5 runs. Load time is a cold load from Ollama with the
+      model file already in the page cache, so it measures PCIe and setup rather than the disk.
+    </p>
+
+    <div class="table-wrap"><table class="data">
+      <tr><th>Test</th><th>Stock (580, Gen1)</th><th>Unlocked (610, Gen2)</th><th>Change</th></tr>
+      <tr><td>PCIe link</td><td>2.5 GT/s x16</td><td>5 GT/s x16</td><td>Gen2</td></tr>
+      <tr><td>BAR1</td><td>64 MiB</td><td>8192 MiB</td><td>128&times;</td></tr>
+      <tr><td>Host to GPU, pinned</td><td>3.14 GB/s</td><td>6.25 GB/s</td><td>2.0&times;</td></tr>
+      <tr><td>GPU to host, pinned</td><td>3.35 GB/s</td><td>6.69 GB/s</td><td>2.0&times;</td></tr>
+      <tr><td>FP32 GEMM (4096&sup3;)</td><td>7.14 TFLOPS</td><td>8.03 TFLOPS</td><td>+12%</td></tr>
+      <tr><td>FP16 GEMM (4096&sup3;)</td><td>0.98 TFLOPS</td><td>54.37 TFLOPS</td><td>55&times;</td></tr>
+      <tr><td>Qwen3 8B prompt (1.7k tokens)</td><td>121 tok/s</td><td>1,514 tok/s</td><td>12.5&times;</td></tr>
+      <tr><td>Qwen3 8B generation</td><td>30.6 tok/s</td><td>62.0 tok/s</td><td>2.0&times;</td></tr>
+      <tr><td>Gemma 4 E4B prompt (1.5k tokens)</td><td>211 tok/s</td><td>2,100 tok/s</td><td>10&times;</td></tr>
+      <tr><td>Gemma 4 E4B generation</td><td>37.7 tok/s</td><td>60.0 tok/s</td><td>1.6&times;</td></tr>
+      <tr><td>Qwen3 8B load (5.2 GB)</td><td>4.97 s</td><td>4.25 s</td><td>&minus;14%</td></tr>
+      <tr><td>Gemma 4 E4B load</td><td>7.75 s</td><td>6.91 s</td><td>&minus;11%</td></tr>
+    </table></div>
+
+    <p>
+      FP16 at 54 TFLOPS is well above the project's own 11.42 cuBLAS figure. Mine is a 4096&sup3; GEMM with FP32 accumulate, which cuBLAS
+      runs on the Tensor Cores, and it lines up with the 63.8 TFLOPS Tensor Core result they report.
+    </p>
+
+    <p>
+      Bandwidth doubled exactly as Gen2 should, but load time improved only 11 to 14%. Loading Qwen3 8B averages about 1.2 GB/s,
+      so most of those 4 to 5 seconds is Ollama starting its runner and setting up, not the copy. At Gen1 the 5.2 GB copy alone takes
+      about 1.7 s, and halving it should save about 0.8 s. The measured saving was 0.7 s.
+    </p>
+
+    <p>
+      I didn't expect generation to double. Token generation is normally limited by memory bandwidth, and the memory clock didn't change
+      (7001 MHz before and after). It seems the stock SM configuration was holding back decode as well as prefill.
+    </p>
+
+    <p>
+      Two caveats. I changed the driver (580 closed to 610 open) and applied the unlock in the same step, and didn't measure stock 610 in
+      between. So the compute numbers belong to driver plus unlock together. The bandwidth and load-time gains come from the link and are
+      clean. Also, the first Gemma prompt run after the model loaded came in at 75 tok/s, so I used the two runs after it.
+    </p>
+
+    <h2>If you're doing this yourself</h2>
+
+    <p>
+      Install the exact driver version first, and check with <code>modinfo</code> that the patched module is the one that loads. If
+      <code>dmesg | grep CMP40</code> shows <code>RETRAIN_FAIL status=1101</code> on an Intel board, try a second retrain from the root
+      port before reaching for the driver reprobe, because a retrain doesn't reset the GPU. And keep a way back: deleting
+      <code>updates/cmpunlocker</code>, running <code>depmod -a</code> and rebuilding the initramfs returns you to the stock 610 driver.
+      After a kernel update, rerun <code>sudo ./install.sh --no-download</code>, since DKMS rebuilds only the stock module.
+    </p>
+
+  </div>
+</body>
+</html>
