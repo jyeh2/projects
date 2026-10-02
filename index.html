@@ -19,13 +19,14 @@
     <section class="pinned">
       <h2 class="section-label">Pinned</h2>
       <div class="pinned-grid">
-        <a class="card pin" href="posts/2026-09-food-trace.html">
+        <div class="card pin">
           <span class="num">1st of 168</span>
           <span class="what">teams at HackCMU, two-day build with a team of five</span>
-          <h3>FoodTrace</h3>
+          <h3><a href="posts/2026-09-food-trace.html">FoodTrace</a></h3>
           <p>Farm-to-shelf provenance: each batch is a Solana NFT, stations prove presence with rotating HMAC QR codes, and anyone can re-hash photos against the chain.</p>
+          <p class="pin-links"><a href="posts/2026-09-food-trace.html">Write-up</a> &middot; <a href="https://foodtrace.oliverchou.dev/verify/demo">Live demo</a> &middot; <a href="https://github.com/jyeh2/Food-Trace">Source</a></p>
           <div class="tags"><span class="tag">Next.js</span><span class="tag">Solana</span><span class="tag">Cloudflare</span></div>
-        </a>
+        </div>
         <div class="card pin">
           <span class="num">~2,300</span>
           <span class="what">monthly users on a production web app</span>
@@ -34,13 +35,14 @@
           <p class="pin-links"><a href="https://portal.hknucsd.com">Live site</a> &middot; <a href="https://github.com/HKN-UCSD/hkn-portal">Source</a></p>
           <div class="tags"><span class="tag">Django REST</span><span class="tag">Svelte</span><span class="tag">AWS</span><span class="tag">GitHub Actions</span></div>
         </div>
-        <a class="card pin" href="posts/2026-09-kvsnap-kv-cache-reuse.html">
+        <div class="card pin">
           <span class="num">200&times; faster</span>
           <span class="what">time to first token, 54 s &rarr; 0.27 s on a 15.6k-token prompt</span>
-          <h3>kvsnap: KV cache reuse in mistral.rs</h3>
+          <h3><a href="posts/2026-09-kvsnap-kv-cache-reuse.html">kvsnap: KV cache reuse in mistral.rs</a></h3>
           <p>A 17-line Rust patch to an open source inference engine, checked token-for-token against recomputing the cache from scratch.</p>
+          <p class="pin-links"><a href="posts/2026-09-kvsnap-kv-cache-reuse.html">Write-up</a> &middot; <a href="https://github.com/jyeh2/KVCaching-Prompt">Source</a></p>
           <div class="tags"><span class="tag">Rust</span><span class="tag">mistral.rs</span><span class="tag">LLM inference</span></div>
-        </a>
+        </div>
         <a class="card pin" href="posts/2026-08-200-bucks-inference-machine.html">
           <span class="num">$200 &middot; 62 tok/s</span>
           <span class="what">an 8B model on a server built from secondhand mining GPUs</span>
