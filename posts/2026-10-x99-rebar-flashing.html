@@ -1,0 +1,178 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Resizable BAR on X99</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+
+<body>
+  <div class="container">
+
+    <a href="../index.html">&larr; back</a>
+
+    <h1>Enabling Resizable BAR on an X99 board for the Arc B580</h1>
+
+    <p class="meta">
+      Modding the BIOS of the Huananzhi X99-BD4 from the <a href="2026-08-200-bucks-inference-machine.html">200 Bucks Inference Machine</a>
+      so the Arc B580 gets Resizable BAR, including a 16-byte corruption UEFITool introduced along the way. October 2026.
+    </p>
+
+    <div class="highlights">
+      <a class="stat" href="#result">
+        <span class="num">Disabled &rarr; Enabled</span>
+        <span class="what">Resizable BAR on the Arc B580, as reported by GPU-Z</span>
+      </a>
+      <a class="stat" href="#verification">
+        <span class="num">16 bytes</span>
+        <span class="what">Silently wiped by UEFITool in a volume I never edited, caught by a binary diff</span>
+      </a>
+      <a class="stat" href="#inserting">
+        <span class="num">2,578 bytes</span>
+        <span class="what">The only change in the final image: the ReBarDxe driver</span>
+      </a>
+      <a class="stat" href="#result">
+        <span class="num">9182</span>
+        <span class="what">Unigine Superposition, 1080p High, after the mod</span>
+      </a>
+    </div>
+
+    <h2>Objective</h2>
+
+    <p>
+      Intel recommends Resizable BAR (ReBar) for Arc cards, since performance drops noticeably without it, and the stock
+      X99 firmware does not offer it. I followed the <a href="https://github.com/xCuri0/ReBarUEFI/wiki">ReBarUEFI wiki</a>
+      to insert its open source ReBarDxe driver into the board's AMI Aptio V firmware.
+    </p>
+
+    <div class="table-wrap"><table class="data">
+      <tr><th>Item</th><th>Details</th></tr>
+      <tr><td>Motherboard</td><td>Huananzhi X99-BD4 Gaming, Intel B85 (Lynx Point) chipset</td></tr>
+      <tr><td>Firmware</td><td>AMI Aptio V, version 5.11 (11/01/2020), UEFI</td></tr>
+      <tr><td>Flash chip</td><td>16 MB Winbond W25Q128BV</td></tr>
+      <tr><td>CPU</td><td>Intel Xeon E5-2678 v3 (12 cores, 24 threads)</td></tr>
+      <tr><td>Memory</td><td>16 GB DDR4-2133 ECC RDIMM, dual channel</td></tr>
+      <tr><td>GPU</td><td>ASRock Intel Arc B580 Challenger, 12 GB GDDR6, PCIe 4.0 x8 running at 3.0 x8</td></tr>
+      <tr><td>Tools</td><td>UEFITool 0.28, UEFIPatch, Intel FPT 9.1, ReBarState, GPU-Z, HWiNFO64</td></tr>
+    </table></div>
+
+    <p>Before the mod, GPU-Z reported Resizable BAR as <strong>Disabled</strong>.</p>
+
+    <a href="#img1"><img src="../assets/x99-rebar/gpuz-disabled.png" alt="GPU-Z before the mod showing Resizable BAR Disabled"></a>
+    <a class="lightbox" id="img1" href="#"><img src="../assets/x99-rebar/gpuz-disabled.png" alt="GPU-Z before the mod showing Resizable BAR Disabled"></a>
+
+    <h2 id="inserting">Inserting the ReBarDxe driver</h2>
+
+    <p>
+      I started from <code>full_backup.bin</code>, a 16 MB dump of the whole flash chip including the Intel flash
+      descriptor. It stayed untouched as the reference for every later comparison.
+    </p>
+
+    <ol>
+      <li>I opened a copy in UEFITool 0.28, the last version that can insert modules.</li>
+      <li>A header-only GUID search for the PciBus driver returned one hit, identifying the single DXE volume: offset
+        <code>0x890000</code>, 5 MB, 236 files, about 2,038 KB free.</li>
+      <li>At the end of that volume I used <strong>Insert after</strong> on the last DXE driver to add
+        <code>ReBarDxe.ffs</code>, and saved the result as <code>patched_image.rom</code>.</li>
+      <li>The 2,578-byte driver landed at offset <code>0xB92678</code>, leaving about 2,035 KB free.</li>
+    </ol>
+
+    <a href="#img2"><img src="../assets/x99-rebar/uefitool.png" alt="UEFITool structure view with ReBarDxe inserted at the end of the DXE volume"></a>
+    <a class="lightbox" id="img2" href="#"><img src="../assets/x99-rebar/uefitool.png" alt="UEFITool structure view with ReBarDxe inserted at the end of the DXE volume"></a>
+
+    <h2>UEFIPatch: no patches needed</h2>
+
+    <p>
+      UEFIPatch, run with the <code>patches.txt</code> from the ReBarUEFI repository, reported "No patches can be applied
+      to input file". Testing every pattern against the decompressed modules confirmed none matched. Disassembly of
+      PciBus showed a vendor variant with a 64-bit MMIO limit of <code>0x8FFFFFFFF</code> (about 36 GB), well above the
+      16 GB limit the stock patch targets. The wiki treats this as an acceptable outcome for these X99 boards.
+    </p>
+
+    <h2 id="verification">Verification: a 16-byte corruption from UEFITool</h2>
+
+    <p>
+      A byte-by-byte comparison of the backup against <code>patched_image.rom</code> showed two changed regions, and
+      only one of them was mine.
+    </p>
+
+    <div class="table-wrap"><table class="data">
+      <tr><th>Offset</th><th>What changed</th><th>Expected?</th></tr>
+      <tr><td><code>0xB92678</code>&ndash;<code>0xB93089</code></td><td>The new ReBarDxe file, in what was empty space. Valid
+        checksums, and identical to the official ReBarUEFI 0.3 release apart from the state byte UEFITool sets for erase polarity.</td><td>Yes</td></tr>
+      <tr><td><code>0xFFD000</code>&ndash;<code>0xFFD00F</code></td><td>16 bytes inside a pad file in the last firmware volume
+        (PEI modules and SEC core) overwritten with <code>FF</code>.</td><td>No</td></tr>
+    </table></div>
+
+    <p>
+      <strong>What was lost.</strong> The original bytes, <code>EA D0 FF 00 F0</code>, decode to
+      <code>jmp far F000:FFD0</code>. This is a constant from GenFv, the EDK2 tool that builds firmware volumes: a small
+      jump stub on a 4 KB boundary, used as an entry point when starting the secondary CPU cores. I found no proof this
+      firmware uses it, but on a 12-core Xeon losing it risked a hang during CPU initialization, so I kept it.
+    </p>
+
+    <p>
+      <strong>Why it happened.</strong> On save, UEFITool 0.28 rebuilt the neighboring volume and regenerated the pad file
+      as empty. This is a known bug. The wiki has a pad file check for it, but points only at the volume you modified.
+      I ruled out free space (over 2 MB remained) and a firmware-wide checksum (the block's last two bytes are a checksum,
+      but they cover only that block).
+    </p>
+
+    <p>
+      <strong>The fix.</strong> I copied the 16 bytes back from the backup to produce <code>patched_image_fixed.rom</code>.
+      Its only difference from the original firmware is the ReBarDxe file. All four firmware volumes parse cleanly,
+      <code>fc /b</code> confirmed the compare, and the flash descriptor, ME, NVRAM, microcode and reset vector are
+      identical to the backup.
+    </p>
+
+    <p>SHA-256 of the final image: <code>3d96d415c5246541c85570982d00b78945c11adb1243fd78be0ac90d9c4f52f0</code></p>
+
+    <h2>Flashing</h2>
+
+    <p>
+      I wrote the fixed image with Intel FPT 9.1 from Windows on the board itself, limited to the BIOS region. FPT
+      rewrote only the blocks that differed: the two 4 KB blocks holding ReBarDxe, plus NVRAM blocks that had changed
+      since the backup. The boot block was untouched and verification passed.
+    </p>
+
+    <h2 id="result">Result: ReBar enabled on the B580</h2>
+
+    <ol>
+      <li>In BIOS setup I enabled <strong>Above 4G Decoding</strong> and disabled <strong>CSM</strong>. Without both, the
+        system will not POST with the GPU.</li>
+      <li>In Windows I ran ReBarState and entered <strong>10</strong>, which sets the maximum BAR size to 2<sup>10</sup> MB = 1 GB.</li>
+      <li>After a reboot, GPU-Z reported Resizable BAR as <strong>Enabled</strong>.</li>
+    </ol>
+
+    <a href="#img3"><img src="../assets/x99-rebar/rebarstate.jpg" alt="ReBarState writing a value of 10 (1024 MB) to the UEFI variable"></a>
+    <a class="lightbox" id="img3" href="#"><img src="../assets/x99-rebar/rebarstate.jpg" alt="ReBarState writing a value of 10 (1024 MB) to the UEFI variable"></a>
+
+    <a href="#img4"><img src="../assets/x99-rebar/gpuz-enabled-crop.jpg" alt="GPU-Z after the mod showing Resizable BAR Enabled on the Intel Arc B580"></a>
+    <a class="lightbox" id="img4" href="#"><img src="../assets/x99-rebar/gpuz-enabled.jpg" alt="GPU-Z after the mod showing Resizable BAR Enabled on the Intel Arc B580"></a>
+
+    <p>
+      As a stability check I ran Unigine Superposition 1.1 at 1080p High (OpenGL): a score of <strong>9182</strong>, with
+      48.03 min, 68.68 average and 104.34 max FPS.
+    </p>
+
+    <a href="#img5"><img src="../assets/x99-rebar/bench.jpg" alt="The X99-BD4 test bench running a benchmark with the Arc B580"></a>
+    <a class="lightbox" id="img5" href="#"><img src="../assets/x99-rebar/bench.jpg" alt="The X99-BD4 test bench running a benchmark with the Arc B580"></a>
+
+    <a href="#img6"><img src="../assets/x99-rebar/superposition.jpg" alt="Unigine Superposition 1080p High result of 9182"></a>
+    <a class="lightbox" id="img6" href="#"><img src="../assets/x99-rebar/superposition.jpg" alt="Unigine Superposition 1080p High result of 9182"></a>
+
+    <p>Still to try: a larger ReBarState value (32 for unlimited) so the full 12 GB of VRAM maps at once.</p>
+
+    <h2>Takeaways</h2>
+
+    <ul>
+      <li><strong>Always diff the patched image against the original dump.</strong> UEFITool's tree view showed no sign of
+        the 16-byte wipe; only a binary compare caught it.</li>
+      <li><strong>Check every volume, not just the one you edited.</strong> UEFITool 0.28 can rebuild neighboring volumes on save.</li>
+      <li><strong>Keep a full 16 MB backup</strong> and flash only the BIOS region, so the descriptor and ME are never at risk.</li>
+    </ul>
+
+  </div>
+</body>
+</html>
