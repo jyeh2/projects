@@ -16,6 +16,40 @@
     <p>This is where I write up projects I build outside of coursework: software engineering first, with hardware and firmware experiments alongside.</p>
     <p>Recently: a full-stack build on Next.js and Solana that won 1st place out of 168 teams at HackCMU, a KV cache reuse patch for the Rust inference engine mistral.rs, and an extraction benchmark of four local LLMs, the last two on an inference server I built from secondhand GPUs.</p>
 
+    <section class="pinned">
+      <h2 class="section-label">Pinned</h2>
+      <div class="pinned-grid">
+        <a class="card pin" href="posts/2026-09-food-trace.html">
+          <span class="num">1st of 168</span>
+          <span class="what">teams at HackCMU, two-day build with a team of five</span>
+          <h3>FoodTrace</h3>
+          <p>Farm-to-shelf provenance: each batch is a Solana NFT, stations prove presence with rotating HMAC QR codes, and anyone can re-hash photos against the chain.</p>
+          <div class="tags"><span class="tag">Next.js</span><span class="tag">Solana</span><span class="tag">Cloudflare</span></div>
+        </a>
+        <a class="card pin" href="https://github.com/HKN-UCSD/hkn-portal">
+          <span class="num">~2,300</span>
+          <span class="what">monthly users on a production web app</span>
+          <h3>HKN Member Portal</h3>
+          <p>Django and Svelte member portal for UCSD's HKN chapter, deployed on AWS.</p>
+          <div class="tags"><span class="tag">Django</span><span class="tag">Svelte</span><span class="tag">AWS</span></div>
+        </a>
+        <a class="card pin" href="posts/2026-09-kvsnap-kv-cache-reuse.html">
+          <span class="num">200&times; faster</span>
+          <span class="what">time to first token, 54 s &rarr; 0.27 s on a 15.6k-token prompt</span>
+          <h3>kvsnap: KV cache reuse in mistral.rs</h3>
+          <p>A 17-line Rust patch to an open source inference engine, checked token-for-token against recomputing the cache from scratch.</p>
+          <div class="tags"><span class="tag">Rust</span><span class="tag">mistral.rs</span><span class="tag">LLM inference</span></div>
+        </a>
+        <a class="card pin" href="posts/2026-08-200-bucks-inference-machine.html">
+          <span class="num">$200 &middot; 62 tok/s</span>
+          <span class="what">an 8B model on a server built from secondhand mining GPUs</span>
+          <h3>200 Bucks Inference Machine</h3>
+          <p>Soldered the missing PCIe lanes, modded the BIOS for Resizable BAR and applied open source driver unlocks: prompt processing 12&times; faster, FP16 55&times;.</p>
+          <div class="tags"><span class="tag">Linux</span><span class="tag">PCIe</span><span class="tag">firmware</span></div>
+        </a>
+      </div>
+    </section>
+
     <section class="latest">
       <h2 class="section-label">Latest</h2>
       <ol class="latest-list">

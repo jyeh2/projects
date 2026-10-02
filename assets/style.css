@@ -411,3 +411,45 @@ a.stat:hover {
   font-weight: 600;
   text-decoration: none;
 }
+
+.pinned {
+  margin: 32px 0 8px;
+}
+.pinned-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+.pin {
+  padding: 16px 18px 18px;
+}
+.pin .num {
+  font-size: 1.6em;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #e6edf3;
+  font-variant-numeric: tabular-nums;
+}
+.pin .what {
+  font-size: 0.85em;
+  color: #9aa4b2;
+  margin: 2px 0 12px;
+}
+.pin h3 {
+  margin: 0 0 6px;
+  font-size: 1.05em;
+  line-height: 1.35;
+  color: #7aa2f7;
+}
+.pin p {
+  margin: 0 0 12px;
+  font-size: 0.92em;
+  color: #b7c0cc;
+  flex: 1;
+}
+@media (max-width: 640px) {
+  .pinned-grid {
+    grid-template-columns: 1fr;
+  }
+}
