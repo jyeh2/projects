@@ -84,7 +84,7 @@
 
     <ul>
       <li>Hardware: one NVIDIA CMP 40HX (Turing, 8 GB) in the X99 box, clocks locked high. The machine
-        has only 7.7 GB of system RAM, which becomes important below.</li>
+        has only 15 GiB of system RAM, which becomes important below.</li>
       <li>Serving: Ollama, with its JSON-schema structured output (<code>format</code>),
         temperature 0, a 12k-token context, and "thinking" turned off on Gemma and Qwen3/3.5 so the comparison measures
         one direct answer from each model.</li>
@@ -353,7 +353,7 @@
     </p>
 
     <p>
-      System RAM turned out to be a bigger problem than VRAM. With only 7.7 GB of system RAM, Ollama was killed for
+      System RAM turned out to be a bigger problem than VRAM. With only 15 GiB of system RAM, Ollama was killed for
       running out of memory when Gemma was still loaded as the next model started. It restarted within 5 seconds, but
       the next run failed on nearly every posting during that gap. Rerunning with one model loaded at a time fixed it.
       On a machine this size, <code>OLLAMA_MAX_LOADED_MODELS=1</code> is worth setting.
