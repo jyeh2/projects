@@ -110,6 +110,20 @@
     <h2>Software and Systems Work</h2>
 
     <div class="card-grid">
+      <div class="card">
+        <img src="assets/cards/x99-recreation.jpg" alt="Terminal showing the Ansible roles, a verify warning about the next-boot kernel, and a passing dry run">
+        <div class="card-body">
+          <h3><a href="https://github.com/jyeh2/X99-Recreation">X99 Recreation</a></h3>
+          <p>Ansible playbook that rebuilds the X99 inference server from a fresh Ubuntu install: 7 roles distilled from 1,661 lines of shell history. It pins the NVIDIA open driver, rebuilds the patched CMP 40HX modules for every new kernel, and retrains the PCIe link to Gen2 at boot. Its verify step caught a kernel update that would have booted the stock driver.</p>
+          <p class="pin-links"><a href="https://github.com/jyeh2/X99-Recreation">Source</a></p>
+          <div class="tags">
+            <span class="tag">Ansible</span>
+            <span class="tag">systemd</span>
+            <span class="tag">Linux</span>
+            <span class="tag">NVIDIA drivers</span>
+          </div>
+        </div>
+      </div>
       <a class="card post-card" href="posts/2026-09-local-llm-extraction-benchmark.html">
         <img src="assets/cards/local-llm-benchmark.jpg" alt="Bar chart of extraction precision: Gemma 4 E4B 95%, Qwen3.5 4B 83%, Qwen3 8B 63%, Qwen2.5 3B 43%">
         <div class="card-body">
