@@ -50,12 +50,26 @@
           <p>Soldered the missing PCIe lanes, modded the BIOS for Resizable BAR and applied open source driver unlocks: prompt processing 12&times; faster, FP16 55&times;.</p>
           <div class="tags"><span class="tag">Linux</span><span class="tag">PCIe</span><span class="tag">firmware</span></div>
         </a>
+        <div class="card pin">
+          <span class="num">7 roles &middot; 1,661 lines</span>
+          <span class="what">of shell history turned into one reproducible Ansible playbook</span>
+          <h3><a href="https://github.com/jyeh2/X99-Recreation">X99 Recreation: Ansible for the inference server</a></h3>
+          <p>Rebuilds the X99 box from a fresh Ubuntu install: pinned NVIDIA open driver and cmpunlocker, a kernel hook that rebuilds the patched modules on every update, and a boot-time PCIe Gen2 retrain.</p>
+          <p class="pin-links"><a href="https://github.com/jyeh2/X99-Recreation">Source</a></p>
+          <div class="tags"><span class="tag">Ansible</span><span class="tag">systemd</span><span class="tag">Linux</span></div>
+        </div>
       </div>
     </section>
 
     <section class="latest">
       <h2 class="section-label">Latest</h2>
       <ol class="latest-list">
+        <li>
+          <time datetime="2026-10">Oct 2026</time>
+          <span class="tag">infra</span>
+          <a href="https://github.com/jyeh2/X99-Recreation">X99 Recreation</a>
+          <span>The whole inference server as Ansible roles, with a kernel hook that keeps the CMP 40HX unlock across updates</span>
+        </li>
         <li>
           <time datetime="2026-10">Oct 2026</time>
           <span class="tag">driver</span>
