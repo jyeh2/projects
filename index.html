@@ -35,10 +35,10 @@
           <div class="tags"><span class="tag">Linux</span><span class="tag">PCIe</span><span class="tag">VFIO</span><span class="tag">Ansible</span></div>
         </a>
         <div class="card pin">
-          <span class="num">3.6 million&times;</span>
-          <span class="what">faster than a field solver, within 0.5% max error</span>
+          <span class="num">1.8 s &rarr; 0.5 &micro;s</span>
+          <span class="what">per prediction, within 0.5% of a C++ field solver</span>
           <h3><a href="https://github.com/jyeh2/interconnect-cap-ml">ML Surrogates for Interconnect Parasitics</a></h3>
-          <p>A C++17 finite-volume capacitance solver labels 4,292 geometries; a PyTorch MLP then predicts coupling capacitance in microseconds, beating the 1983 Sakurai&ndash;Tamaru formula and an XGBoost baseline.</p>
+          <p>A C++17 finite-volume capacitance solver labels 4,292 geometries; a PyTorch MLP then predicts line capacitance in microseconds, staying within 0.14% of the solver on held-out tests and beating the 1983 Sakurai&ndash;Tamaru formula and an XGBoost baseline.</p>
           <p class="pin-links"><a href="https://github.com/jyeh2/interconnect-cap-ml">Source</a></p>
           <div class="tags"><span class="tag">C++17</span><span class="tag">PyTorch</span><span class="tag">OpenMP</span></div>
         </div>
@@ -59,7 +59,7 @@
           <time datetime="2026-10">Oct 2026</time>
           <span class="tag">ML + C++</span>
           <a href="https://github.com/jyeh2/interconnect-cap-ml">ML Surrogates for Interconnect Parasitics</a>
-          <span>A C++17 finite-volume capacitance solver and a PyTorch surrogate that predicts coupling capacitance 3.6 million&times; faster, within 0.5%</span>
+          <span>A C++17 finite-volume capacitance solver and a PyTorch surrogate that replaces a ~1.8 s field solve with a 0.5 &micro;s prediction, within 0.5%</span>
         </li>
         <li>
           <time datetime="2026-10">Oct 2026</time>
@@ -287,7 +287,7 @@
       <div class="card">
         <div class="card-body">
           <h3><a href="https://github.com/jyeh2/interconnect-cap-ml">ML Surrogates for Interconnect Parasitics</a></h3>
-          <p>A 2D finite-volume capacitance field solver in C++17 generates 4,292 labeled geometries, then a PyTorch MLP predicts coupling capacitance within 0.5% &mdash; 3.6 million&times; faster than the solver, and beating the 1983 Sakurai&ndash;Tamaru formula and an XGBoost baseline outside the training range.</p>
+          <p>A 2D finite-volume capacitance field solver in C++17 generates 4,292 labeled geometries, then a PyTorch MLP predicts line capacitance within 0.14% of the solver on held-out tests &mdash; replacing a ~1.8 s solve with a 0.5 &micro;s prediction &mdash; and holds under 1% just outside the training range, where an XGBoost baseline drifts past 20%.</p>
           <p class="pin-links"><a href="https://github.com/jyeh2/interconnect-cap-ml">Source</a></p>
           <div class="tags">
             <span class="tag">C++17</span>
