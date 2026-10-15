@@ -62,6 +62,15 @@
       written to the VBIOS. The unlock is reapplied every time the driver loads, so turning the machine off returns the card to stock.
     </p>
 
+    <p>
+      The compute unlock reproduces the CMP 170HX technique on a Turing card. The 170HX unlocker
+      (<a href="https://github.com/pearlfortune/cmpunlocker">pearlfortune/cmpunlocker</a>) plants a crafted payload in the SEC2 Booter during
+      driver initialisation, before GSP boots. The Booter runs signed, so it can write the PLM-gated registers the host isn't allowed to touch
+      (<a href="https://next.tangled.org/clee.sh/cmpunlocker/blob/main/docs/ARCHITECTURE.md">architecture notes</a>). The 40HX patch traces
+      back to that code through <a href="https://github.com/sbccc1888/cmpunlocker">sbccc1888's port</a>, and uses the same path to restore
+      the SM configuration. The boot log confirms it ran: <code>FECS_PLM=0xffffff8f</code>.
+    </p>
+
     <div class="table-wrap"><table class="data">
       <tr><th>Item</th><th>Details</th></tr>
       <tr><td>GPU</td><td>NVIDIA CMP 40HX (TU106, <code>10de:1f0b</code>), 8 GB, VBIOS 90.06.67.00.04, x16 after the capacitor mod</td></tr>
