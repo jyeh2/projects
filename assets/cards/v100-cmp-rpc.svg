@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 250" font-family="system-ui, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#7aa2f7"/>
+    </marker>
+  </defs>
+  <rect width="600" height="250" fill="#0e141c"/>
+
+  <!-- CMP 40HX on host -->
+  <rect x="30" y="34" width="210" height="74" rx="9" fill="#111823" stroke="#7aa2f7" stroke-width="1.5"/>
+  <text x="135" y="66" text-anchor="middle" fill="#e6edf3" font-size="19" font-weight="700">CMP 40HX</text>
+  <text x="135" y="90" text-anchor="middle" fill="#9dc1ff" font-size="12.5" font-family="ui-monospace, monospace">host &#183; 610 driver</text>
+
+  <!-- VFIO guest with V100 -->
+  <rect x="358" y="22" width="214" height="96" rx="10" fill="#141414" stroke="#e3b341" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text x="372" y="40" fill="#e3b341" font-size="12" font-weight="600">VFIO guest &#183; 580</text>
+  <rect x="372" y="50" width="186" height="56" rx="8" fill="#111823" stroke="#e3b341" stroke-width="1.5"/>
+  <text x="465" y="84" text-anchor="middle" fill="#e6edf3" font-size="19" font-weight="700">Tesla V100</text>
+
+  <!-- RPC pooling layer -->
+  <rect x="200" y="162" width="196" height="60" rx="10" fill="#111823" stroke="#bc8cff" stroke-width="1.5"/>
+  <text x="298" y="188" text-anchor="middle" fill="#e6edf3" font-size="16" font-weight="700">llama.cpp RPC</text>
+  <text x="298" y="208" text-anchor="middle" fill="#b7c0cc" font-size="12">pools both GPUs</text>
+
+  <!-- arrows GPUs -> RPC -->
+  <path d="M135,108 L135,140 L250,140 L250,160" fill="none" stroke="#7aa2f7" stroke-width="1.8" marker-end="url(#a)"/>
+  <path d="M465,106 L465,140 L348,140 L348,160" fill="none" stroke="#7aa2f7" stroke-width="1.8" marker-end="url(#a)"/>
+
+  <!-- output -->
+  <line x1="396" y1="192" x2="432" y2="192" stroke="#7aa2f7" stroke-width="1.8" marker-end="url(#a)"/>
+  <rect x="434" y="172" width="144" height="40" rx="20" fill="#0e141c" stroke="#7ee787" stroke-width="1.5"/>
+  <text x="506" y="198" text-anchor="middle" fill="#7ee787" font-size="15" font-weight="700">24 tok/s</text>
+</svg>

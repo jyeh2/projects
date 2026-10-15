@@ -252,6 +252,7 @@
         </a>
 
         <a class="card post-card" href="posts/2026-10-v100-vfio-rpc.html">
+          <img src="assets/cards/v100-cmp-rpc.svg" alt="Schematic: CMP 40HX on the host and a Tesla V100 in a VFIO guest, both feeding a llama.cpp RPC node that outputs 24 tok/s">
           <div class="card-body">
             <h3>V100 + CMP 40HX: Two Drivers, One Box</h3>
             <p>A Tesla V100 passed through to a KVM guest with vfio-pci so it can run the closed 580 driver, while the host keeps the patched 610 for the CMP. llama.cpp RPC pools both GPUs to serve Qwen3 32B at 24 tok/s.</p>
@@ -285,6 +286,7 @@
 
     <div class="card-grid">
       <div class="card">
+        <img src="assets/cards/ml-surrogates.svg" alt="Schematic: a field-solver mesh with two coupled conductors feeding a PyTorch MLP that predicts in 0.5 microseconds within 0.14%">
         <div class="card-body">
           <h3><a href="https://github.com/jyeh2/interconnect-cap-ml">ML Surrogates for Interconnect Parasitics</a></h3>
           <p>A 2D finite-volume capacitance field solver in C++17 generates 4,292 labeled geometries, then a PyTorch MLP predicts line capacitance within 0.14% of the solver on held-out tests &mdash; replacing a ~1.8 s solve with a 0.5 &micro;s prediction &mdash; and holds under 1% just outside the training range, where an XGBoost baseline drifts past 20%.</p>
