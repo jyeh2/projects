@@ -19,12 +19,12 @@
       and getting PCIe Gen2 to train on an X99 root port where the driver's own retrain fails. October 2026.
     </p>
 
-    <p class="series">X99 build series: <a href="2026-08-200-bucks-inference-machine.html">The build</a> &middot; <a href="2026-09-kvsnap-kv-cache-reuse.html">mistral.rs vs llama.cpp</a> &middot; <a href="2026-09-local-llm-extraction-benchmark.html">Four LLMs compared</a> &middot; <a href="2026-09-wake-on-lan-retrofit.html">Wake on LAN</a> &middot; <a href="2026-10-x99-rebar-flashing.html">ReBar BIOS mod</a> &middot; <a class="current" href="2026-10-cmp40hx-unlock.html">CMP 40HX unlock</a></p>
+    <p class="series">X99 build series: <a href="2026-08-200-bucks-inference-machine.html">The build</a> &middot; <a href="2026-09-kvsnap-kv-cache-reuse.html">mistral.rs vs llama.cpp</a> &middot; <a href="2026-09-local-llm-extraction-benchmark.html">Four LLMs compared</a> &middot; <a href="2026-09-wake-on-lan-retrofit.html">Wake on LAN</a> &middot; <a href="2026-10-x99-rebar-flashing.html">ReBar BIOS mod</a> &middot; <a class="current" href="2026-10-cmp40hx-unlock.html">CMP 40HX unlock</a> &middot; <a href="2026-10-v100-vfio-rpc.html">V100 + VFIO</a></p>
 
     <p class="summary">
       The CMP 40HX ships locked to PCIe Gen1, a 64 MiB BAR1 and crippled FP16. The <a href="https://github.com/Cyridd/cmpunlocker">cmpunlocker</a>
       patches to NVIDIA's open kernel driver lift all three without touching the VBIOS. Compute and ReBAR worked on the first boot. Gen2
-      didn't: the driver's link retrain failed on the X99 root port. A second retrain triggered by hand from the root port brought the link up at 5 GT/s.
+      didn't: the driver's link retrain failed on the X99 root port. A driver reprobe followed by a second retrain from the root port brought the link up at 5 GT/s.
       FP16 throughput went up 55&times;, prompt processing about 12&times;, token generation 2&times;, and host-to-GPU bandwidth doubled.
     </p>
 
@@ -106,12 +106,13 @@
       The project's diagnostic notes describe this exact failure on VBIOS .04, and fix it by unbinding and rebinding the driver. Its
       Gen2 retrain was verified on an AMD root port, while an Intel Alder Lake test hit trouble, and I couldn't find any reports from X99.
       The log also shows the driver had already set a Gen2 target (<code>bits[19:18]=2</code>) on both ends. The retrain itself had failed.
-      So instead of reloading the driver, I stopped everything using the GPU and asked the root port to retrain once more by setting the
+      So I stopped everything using the GPU, ran the project's reprobe helper, and then asked the root port to retrain once more by setting the
       Retrain Link bit in its Link Control register:
     </p>
 
     <pre><code>sudo systemctl stop ollama nvidia-persistenced
-sudo setpci -s 00:02.0 CAP_EXP+10.w=0020
+sudo ./tools/cmp40hx-driver-reprobe-gen2.sh --confirm-driver-reprobe
+sudo setpci -s 00:02.0 CAP_EXP+10.w=0020:0020
 sudo lspci -vvv -s 03:00.0 | grep 'LnkSta:'
 sudo systemctl start nvidia-persistenced ollama</code></pre>
 
@@ -125,11 +126,14 @@ sudo systemctl start nvidia-persistenced ollama</code></pre>
     <a class="lightbox" id="img3" href="#"><img src="../assets/cmp40hx-unlock/gen2-retrain.png" alt="setpci retrain of root port 00:02.0 followed by LnkSta showing 5GT/s x16 on the CMP 40HX"></a>
 
     <p>
-      One caveat about that command: without a mask, setpci writes the whole 16-bit register, so it also cleared the port's other
-      Link Control bits, ASPM and Common Clock Configuration among them. The masked form
-      <code>setpci -s 00:02.0 CAP_EXP+10.w=0020:0020</code> sets only the Retrain Link bit. I haven't tested whether the masked form
-      trains to Gen2 as well, since clearing those bits may be part of why it worked. Since the unlock resets on a power cycle, this
-      step has to run after every cold boot.
+      <strong>Correction (October 15).</strong> An earlier version of this post said the retrain alone did it, using the unmasked
+      <code>CAP_EXP+10.w=0020</code>. My shell history says otherwise: I had run the project's driver reprobe helper first, and the retrain
+      was the masked form <code>0020:0020</code>, which sets only the Retrain Link bit and leaves ASPM and Common Clock Configuration alone.
+      Both steps matter. After a cold boot the card advertises Gen1 only (LnkCap2 bit <code>0x04</code> clear), and a retrain on its own
+      comes back at 2.5 GT/s, which I confirmed on October 5. The reprobe (a driver unbind and rebind) makes the card advertise Gen2,
+      and then the retrain brings the link up to it. The unlock resets on every power cycle, so both have to run after every cold boot. A
+      systemd oneshot in my <a href="https://github.com/jyeh2/X99-Recreation">Ansible repo</a> now does it before Ollama starts, and it
+      brought the link up to Gen2 by itself on the next cold boot.
     </p>
 
     <h2 id="results">Results</h2>
@@ -181,8 +185,8 @@ sudo systemctl start nvidia-persistenced ollama</code></pre>
 
     <p>
       Install the exact driver version first, and check with <code>modinfo</code> that the patched module is the one that loads. If
-      <code>dmesg | grep CMP40</code> shows <code>RETRAIN_FAIL status=1101</code> on an Intel board, try a second retrain from the root
-      port before reaching for the driver reprobe, because a retrain doesn't reset the GPU. And keep a way back: deleting
+      <code>dmesg | grep CMP40</code> shows <code>RETRAIN_FAIL status=1101</code> on an Intel board, run the driver reprobe and then a
+      masked retrain from the root port. On my X99 neither one works alone. And keep a way back: deleting
       <code>updates/cmpunlocker</code>, running <code>depmod -a</code> and rebuilding the initramfs returns you to the stock 610 driver.
       After a kernel update, rerun <code>sudo ./install.sh --no-download</code>, since DKMS rebuilds only the stock module.
     </p>

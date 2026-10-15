@@ -1,0 +1,288 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>V100 Next to a CMP 40HX</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+
+<body>
+  <div class="container">
+
+    <a href="../index.html">&larr; back</a>
+
+    <h1>A Tesla V100 Next to the Unlocked CMP 40HX: Two Drivers, One Box</h1>
+
+    <p class="meta">
+      Adding a V100 SXM2 16GB to the <a href="2026-08-200-bucks-inference-machine.html">200 Bucks Inference Machine</a> without giving up the
+      <a href="2026-10-cmp40hx-unlock.html">CMP 40HX unlock</a>: VFIO passthrough to a VM on the closed 580 driver, then llama.cpp RPC to pool both cards. October 2026.
+    </p>
+
+    <p class="series">X99 build series: <a href="2026-08-200-bucks-inference-machine.html">The build</a> &middot; <a href="2026-09-kvsnap-kv-cache-reuse.html">mistral.rs vs llama.cpp</a> &middot; <a href="2026-09-local-llm-extraction-benchmark.html">Four LLMs compared</a> &middot; <a href="2026-09-wake-on-lan-retrofit.html">Wake on LAN</a> &middot; <a href="2026-10-x99-rebar-flashing.html">ReBar BIOS mod</a> &middot; <a href="2026-10-cmp40hx-unlock.html">CMP 40HX unlock</a> &middot; <a class="current" href="2026-10-v100-vfio-rpc.html">V100 + VFIO</a></p>
+
+    <p class="summary">
+      The CMP 40HX unlock only exists for NVIDIA's open kernel module, and the open module refuses the V100 because Volta has no GSP.
+      Linux loads one <code>nvidia.ko</code>, so the two cards can't share a driver without giving up the unlock. Instead the V100 goes to a
+      KVM guest through VFIO and runs the closed 580 driver there, while the host keeps the patched 610 driver for the CMP. In the guest
+      the V100 runs Qwen3 8B at 106 tok/s, against 62 on the unlocked CMP. llama.cpp's RPC backend then pools both cards for models neither can hold alone: Qwen3 32B runs at 24 tok/s across the two, against 5.7 with the V100 and the CPU.
+    </p>
+
+    <div class="highlights">
+      <a class="stat" href="#results">
+        <span class="num">62 &rarr; 106 tok/s</span>
+        <span class="what">Qwen3 8B generation, unlocked CMP 40HX vs. V100 in the VM</span>
+      </a>
+      <a class="stat" href="#results">
+        <span class="num">1,517 &rarr; 2,700 tok/s</span>
+        <span class="what">Qwen3 8B prompt processing, same comparison</span>
+      </a>
+      <a class="stat" href="#vfio">
+        <span class="num">2 drivers</span>
+        <span class="what">Patched 610 open on the host, closed 580 in the guest, at the same time</span>
+      </a>
+      <a class="stat" href="#pooled">
+        <span class="num">5.7 &rarr; 24.4 tok/s</span>
+        <span class="what">Qwen3 32B generation, V100 plus CPU vs. pooled across both cards over RPC</span>
+      </a>
+    </div>
+
+    <h2>The problem</h2>
+
+    <p>
+      With the V100 in the second x16 slot, the patched driver loaded for the CMP and rejected the new card at probe time:
+    </p>
+
+    <pre><code>NVRM: The NVIDIA GPU 0000:04:00.0 (PCI ID: 10de:1db1)
+NVRM: installed in this system is not supported by open
+NVRM: nvidia.ko because it does not include the required GPU
+NVRM: System Processor (GSP).</code></pre>
+
+    <p>
+      NVIDIA's open kernel modules only drive Turing and newer, because they hand most of the driver's work to the GSP on the card. Volta
+      doesn't have one, so the V100 needs the closed module, and 580 is the last branch that supports it. That rules out the obvious idea
+      of porting cmpunlocker to 580: a port would still be an open module. The patches edit the resource manager source
+      (<code>kernel_gsp_booter_tu102.c</code> and friends), which in the closed driver ships as a prebuilt binary, so there's nothing to apply them to.
+    </p>
+
+    <div class="table-wrap"><table class="data">
+      <tr><th>Option</th><th>V100</th><th>CMP 40HX</th><th>Pooled 24 GB</th></tr>
+      <tr><td>Closed 580 for both</td><td>Works</td><td>Back to stock: Gen1, 64 MiB BAR1, FP16 under 1 TFLOPS</td><td>Yes, in Ollama</td></tr>
+      <tr><td>Port cmpunlocker to 580 open</td><td>Still rejected</td><td>Unlocked</td><td>No</td></tr>
+      <tr><td><strong>V100 in a VM on closed 580</strong></td><td>Works</td><td>Unlocked</td><td>Yes, with llama.cpp RPC</td></tr>
+    </table></div>
+
+    <div class="table-wrap"><table class="data">
+      <tr><th>Item</th><th>Details</th></tr>
+      <tr><td>Host</td><td>Huananzhi X99-BD4, Xeon E5-2678 v3 (12C/24T), 15 GB RAM, Ubuntu 22.04.5, kernel 5.15.0-194</td></tr>
+      <tr><td>CMP 40HX</td><td><code>03:00.0</code> on root port <code>00:02.0</code>, patched 610.57.04 open driver, Gen2 x16</td></tr>
+      <tr><td>V100</td><td>Tesla V100 SXM2 16GB (<code>10de:1db1</code>) on <code>04:00.0</code>, root port <code>00:03.0</code>, Gen3 x16</td></tr>
+      <tr><td>Guest</td><td>Ubuntu 22.04.5, 8 vCPUs, 6 GB RAM, 80 GB qcow2, closed 580.178.04 server driver</td></tr>
+    </table></div>
+
+    <h2 id="vfio">Passing the V100 to a VM</h2>
+
+    <p>
+      <strong>IOMMU.</strong> The BIOS already had VT-d on (the ACPI DMAR table was present), but the kernel wasn't using it. I added
+      <code>intel_iommu=on iommu=pt</code> to <code>GRUB_CMDLINE_LINUX_DEFAULT</code>. After a power cycle there were 33 IOMMU groups, and
+      the V100 sat alone in group 31, with the CMP alone in group 30. That's the best case: nothing else has to come along with the card.
+    </p>
+
+    <p>
+      <strong>Claiming the card for VFIO.</strong> The usual recipe is <code>options vfio-pci ids=10de:1db1</code> in
+      <code>/etc/modprobe.d</code>. It did nothing here, because Ubuntu builds vfio-pci into the kernel (<code>CONFIG_VFIO_PCI=y</code>),
+      so module options files never apply. The ID has to go on the kernel command line instead:
+    </p>
+
+    <pre><code>GRUB_CMDLINE_LINUX_DEFAULT="intel_iommu=on iommu=pt vfio-pci.ids=10de:1db1"</code></pre>
+
+    <p>
+      After <code>update-grub</code> and a reboot, <code>lspci -k -s 04:00.0</code> showed <code>Kernel driver in use: vfio-pci</code>.
+      The ID matches only the V100, so the CMP (<code>10de:1f0b</code>) stays on the patched driver, and its boot-time Gen2 retrain kept working.
+    </p>
+
+    <p>
+      <strong>The VM.</strong> With <code>qemu-kvm libvirt-daemon-system virtinst ovmf</code> installed:
+    </p>
+
+    <pre><code>sudo virt-install --connect qemu:///system --name v100 \
+  --memory 6144 --vcpus 8 --cpu host-passthrough \
+  --machine q35 --boot uefi --os-variant ubuntu22.04 \
+  --disk path=/var/lib/libvirt/images/v100.qcow2,size=80,format=qcow2 \
+  --hostdev 04:00.0 --network network=default \
+  --location /var/lib/libvirt/images/ubuntu-22.04.5-live-server-amd64.iso,kernel=casper/vmlinuz,initrd=casper/initrd \
+  --extra-args 'console=ttyS0,115200n8' --graphics none</code></pre>
+
+    <p>
+      The installer runs on the serial console, which suits a headless box. The ISO has to live somewhere libvirt's QEMU user can read,
+      not in a home directory. Inside the guest the V100 showed up with its full 16 GB BAR1 mapped, so the large-BAR workarounds
+      (a bigger 64-bit MMIO window in OVMF) weren't needed.
+    </p>
+
+    <p>
+      <strong>Secure Boot got in the way.</strong> On Ubuntu, <code>--boot uefi</code> picked the OVMF build with Microsoft keys enrolled, so
+      the guest booted with Secure Boot on. The 580 driver built through DKMS without complaint, then failed to load:
+    </p>
+
+    <pre><code>modprobe: ERROR: could not insert 'nvidia': Operation not permitted
+Lockdown: modprobe: unsigned module loading is restricted</code></pre>
+
+    <p>
+      Rather than enrolling a MOK key, I pointed the domain at the plain firmware, <code>OVMF_CODE_4M.fd</code>, with a fresh NVRAM from
+      <code>OVMF_VARS_4M.fd</code>, and redefined it. Ubuntu's fallback bootloader picked up the existing install, Secure Boot came up
+      disabled, and <code>nvidia-smi</code> in the guest showed the V100: 16384 MiB, Gen3 x16, ECC enabled, 300 W limit.
+    </p>
+
+    <p>
+      <strong>Inside the guest:</strong> <code>nvidia-driver-580-server</code> (the closed module) with its packages held, then Ollama set
+      to listen on all addresses through a systemd override. Ollama picked its <code>cuda_v12</code> backend, since CUDA 13 dropped Volta.
+      On the host, a DHCP reservation keeps the guest at <code>192.168.122.178</code>, and <code>virsh autostart v100</code> brings it up at boot.
+    </p>
+
+    <p>
+      <strong>Exposure.</strong> The guest sits on libvirt's NAT network. It can reach out, but nothing can open a connection to it except
+      the host: not the LAN, and not my Tailscale devices, because the host doesn't advertise <code>192.168.122.0/24</code>. That matters
+      because neither Ollama's API nor llama.cpp's RPC server has authentication.
+    </p>
+
+    <h2 id="results">Results: V100 in the guest vs. the unlocked CMP</h2>
+
+    <p>
+      The same <code>llm.sh</code> script as the CMP post, run from the host against the guest's Ollama: Qwen3 8B Q4_K_M, a 1.7k-token
+      prompt with a unique prefix per run, 128 generated tokens. The first V100 run included warm-up (1,911 tok/s prompt), so the
+      table uses the two after it.
+    </p>
+
+    <div class="table-wrap"><table class="data">
+      <tr><th>Qwen3 8B</th><th>CMP 40HX, unlocked (host)</th><th>V100 (guest)</th><th>Change</th></tr>
+      <tr><td>Prompt processing</td><td>1,517 tok/s</td><td>2,674&ndash;2,721 tok/s</td><td>1.8&times;</td></tr>
+      <tr><td>Generation</td><td>62.0 tok/s</td><td>106.0&ndash;106.2 tok/s</td><td>1.7&times;</td></tr>
+    </table></div>
+
+    <p>
+      Generation tracks memory bandwidth, and the V100's HBM2 runs at about 900 GB/s against the CMP's 448. Going through the VM doesn't
+      seem to cost much: the guest pulled 52 W at 46 &deg;C during the run, and the numbers were stable after the first one.
+    </p>
+
+    <h2 id="pooled">Pooling both cards with llama.cpp RPC</h2>
+
+    <p>
+      Ollama can't split one model across two machines, and the guest is effectively a second machine. llama.cpp can, through its RPC
+      backend: <code>ggml-rpc-server</code> runs next to a GPU and exposes it over TCP, and the client treats it as one more device and
+      assigns it a share of the layers. Only activations cross the link per token, a few kilobytes, so a virtual network is plenty.
+    </p>
+
+    <p>
+      <strong>Guest side.</strong> CUDA 12.9 from NVIDIA's repo (CUDA 13 can't target sm_70), and llama.cpp built at exactly the same commit
+      as the host (<code>f498f86</code>), because the RPC protocol has to match on both ends. I copied the source over with
+      <code>git archive f498f86 | ssh v100 tar -x</code> rather than cloning, to be sure. Only the server target is needed:
+    </p>
+
+    <pre><code>cmake -B build -DGGML_CUDA=ON -DGGML_RPC=ON -DCMAKE_CUDA_ARCHITECTURES=70 -DCMAKE_BUILD_TYPE=Release
+cmake --build build --target ggml-rpc-server -j 5</code></pre>
+
+    <p>
+      That took 12 minutes on 8 vCPUs. I kept it to 5 jobs so nvcc wouldn't run the 6 GB guest out of memory. A systemd unit runs it at boot:
+    </p>
+
+    <pre><code>ExecStart=/home/james/src/llama.cpp/build/bin/ggml-rpc-server -H 192.168.122.178 -p 50052 -d CUDA0 -c</code></pre>
+
+    <p>
+      <code>-H</code> binds to the guest's private address, which only the host can reach (the server prints a large warning about
+      exposure, and it's right to). <code>-d CUDA0</code> offers just the V100, not the guest's CPU. <code>-c</code> caches received tensors on the
+      guest's disk, so a reload doesn't push the weights over the link again. After the 32B run that cache was 16 GB.
+    </p>
+
+    <p>
+      <strong>Host side.</strong> The host's existing build (sm_75, <code>-DGGML_RPC=ON</code>) only needs <code>--rpc</code>. One gotcha:
+      <code>--rpc</code> has to come before <code>--list-devices</code>, or the RPC device isn't registered in time and doesn't show up.
+    </p>
+
+    <pre><code>$ llama-bench --rpc 192.168.122.178:50052 --list-devices
+  CUDA0: NVIDIA CMP 40HX (7796 MiB, 7703 MiB free)
+  RPC0: 192.168.122.178:50052 (16144 MiB, 15833 MiB free)</code></pre>
+
+    <p>
+      That's 23.5 GB free across the two cards. <code>-dev CUDA0/RPC0</code> splits the layers across both, by default in proportion to free memory.
+    </p>
+
+    <h3>Llama 2 7B: each card, then both</h3>
+
+    <p>
+      <code>llama-bench</code>, Q4_0, flash attention on, all layers on GPU, 3 repetitions. It fits on either card, so this isolates
+      what the RPC hop and the split cost.
+    </p>
+
+    <div class="table-wrap"><table class="data">
+      <tr><th>Llama 2 7B Q4_0</th><th>pp512 (tok/s)</th><th>tg128 (tok/s)</th></tr>
+      <tr><td>CMP 40HX, local</td><td>1,878</td><td>80.4</td></tr>
+      <tr><td>V100 through RPC</td><td>2,758</td><td>127.3</td></tr>
+      <tr><td>Split, CMP + V100</td><td>2,376</td><td>99.8</td></tr>
+    </table></div>
+
+    <p>
+      The V100 through RPC beats the CMP running locally by 47% on prompt and 58% on generation, protocol overhead included. The split
+      lands between the two, as it should: each token runs through the CMP's layers and then the V100's in sequence, so it's no faster
+      than the slower stage allows. For a model that fits on the V100, the V100 alone is the right choice.
+    </p>
+
+    <h3>Qwen3 32B: the model that fits on neither</h3>
+
+    <p>
+      Qwen3 32B Q4_K_M is 18.4 GiB (19.8 GB on disk). It won't fit on the 16 GB V100 or the 8 GB CMP, but it fits across both. As the
+      baseline without pooling, I put as much as fits on the V100 (50 of 65 layers) and ran the rest on the host CPU, all 12 cores.
+    </p>
+
+    <div class="table-wrap"><table class="data">
+      <tr><th>Qwen3 32B Q4_K_M</th><th>pp512 (tok/s)</th><th>tg128 (tok/s)</th></tr>
+      <tr><td>V100 (50 layers) + host CPU (rest)</td><td>42.2</td><td>5.7</td></tr>
+      <tr><td><strong>Split, CMP + V100, all on GPU</strong></td><td><strong>478</strong></td><td><strong>24.4</strong></td></tr>
+    </table></div>
+
+    <p>
+      Pooling is 4.2&times; faster on generation and 11&times; on prompt processing. 24 tok/s is comfortably faster than reading speed
+      for a dense 32B model. The CPU baseline's prompt number is especially poor because for large batches llama.cpp copies the CPU-resident
+      weights to the GPU for each pass, and here that GPU sits behind RPC. The whole pooled <code>llama-bench</code> run, model load
+      included, took 114 seconds, even though the host only had about 7 GB of RAM free for a 19.8 GB file.
+    </p>
+
+    <h2>Running it day to day</h2>
+
+    <div class="table-wrap"><table class="data">
+      <tr><th>What</th><th>Where</th><th>Use for</th></tr>
+      <tr><td>Ollama on the host</td><td><code>localhost:11434</code>, CMP 40HX</td><td>Small models</td></tr>
+      <tr><td>Ollama in the guest</td><td><code>192.168.122.178:11434</code>, V100</td><td>Anything up to about 15 GB, and the faster card</td></tr>
+      <tr><td><code>llama-server --rpc 192.168.122.178:50052</code></td><td>Host, both cards</td><td>Models from 16 to about 22 GB</td></tr>
+    </table></div>
+
+    <p>
+      For the pooled case, <code>llama-server</code> gives the same OpenAI-compatible API Ollama does. Note the device list is
+      comma-separated here, where <code>llama-bench</code> uses a slash:
+    </p>
+
+    <pre><code>llama-server --rpc 192.168.122.178:50052 -m Qwen3-32B-Q4_K_M.gguf \
+  -ngl 99 -fa on -dev CUDA0,RPC0 -c 4096 --host 127.0.0.1 --port 8089</code></pre>
+
+    <p>
+      With the guest's tensor cache already warm it was serving in about 80 seconds, and a short chat request generated at 22 tok/s.
+    </p>
+
+    <p>
+      Everything comes back on its own after a cold boot: the host's retrain unit takes the CMP to Gen2, vfio-pci claims the V100, libvirt
+      autostarts the guest, and the guest starts Ollama and the RPC server. One manual step is left: the CMP's 300 MHz idle clock lock
+      still applies at boot and has to be released with <code>sudo cmp40hx-uncap</code> before any benchmark. My first pooled run hit
+      it and reported 8 tok/s for the CMP.
+    </p>
+
+    <h2>If you're doing this yourself</h2>
+
+    <p>
+      Check the IOMMU groups before buying anything. If the card shares a group with other devices, passthrough gets much harder. On
+      Ubuntu, put <code>vfio-pci.ids=</code> on the kernel command line, since the module options file is ignored. Pick the OVMF build without
+      Secure Boot, or be ready to sign the DKMS module. Build llama.cpp at the same commit on both ends. And keep the RPC server on a network
+      nothing else can reach, because it has no authentication at all.
+    </p>
+
+  </div>
+</body>
+</html>
