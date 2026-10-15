@@ -58,6 +58,12 @@
       <ol class="latest-list">
         <li>
           <time datetime="2026-10">Oct 2026</time>
+          <span class="tag">ML + C++</span>
+          <a href="https://github.com/jyeh2/interconnect-cap-ml">ML Surrogates for Interconnect Parasitics</a>
+          <span>A C++17 finite-volume capacitance solver and a PyTorch surrogate that predicts coupling capacitance 3.6 million&times; faster, within 0.5%</span>
+        </li>
+        <li>
+          <time datetime="2026-10">Oct 2026</time>
           <span class="tag">infra</span>
           <a href="posts/2026-10-v100-vfio-rpc.html">V100 + CMP 40HX, Two Drivers</a>
           <span>V100 passed through to a KVM guest on the closed 580 driver, pooled with the unlocked CMP over llama.cpp RPC: Qwen3 32B at 24 tok/s</span>
@@ -113,23 +119,186 @@
       </ol>
     </section>
 
+    <section class="x99-build">
+      <h2>The X99 Build</h2>
+      <p>One secondhand Huananzhi X99-BD4 board has become a running theme: a roughly $200 inference server I keep extending. The projects below are chapters in the same machine &mdash; soldering its PCIe lanes, flashing its BIOS, waking it over the network, unlocking the mining GPUs, and finally running two NVIDIA cards on two different drivers at once, pooled for one model.</p>
+
+      <figure class="diagram">
+        <svg viewBox="0 0 760 470" role="img" aria-labelledby="x99diag-title x99diag-desc">
+          <title id="x99diag-title">The X99 inference box today</title>
+          <desc id="x99diag-desc">An Orange Pi Zero wakes the X99 host over Tailscale. The host runs the patched NVIDIA 610 open driver with the unlocked CMP 40HX on PCIe Gen2. A Tesla V100 is passed through with vfio-pci to a KVM/QEMU guest running the closed 580 driver. llama.cpp RPC pools both GPUs to serve Qwen3 32B at 24 tokens per second.</desc>
+          <defs>
+            <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="#7aa2f7"/>
+            </marker>
+          </defs>
+
+          <!-- top: wake path over Tailscale -->
+          <rect x="150" y="12" width="250" height="34" rx="7" fill="#111823" stroke="#1f2937"/>
+          <text x="275" y="33" text-anchor="middle" fill="#e6edf3" font-size="12.5">Orange Pi Zero &mdash; WoL listener + relay</text>
+          <rect x="470" y="12" width="110" height="34" rx="7" fill="#111823" stroke="#1f2937"/>
+          <text x="525" y="33" text-anchor="middle" fill="#e6edf3" font-size="12.5">laptop</text>
+          <line x1="400" y1="29" x2="468" y2="29" stroke="#9aa4b2" stroke-width="1.3" stroke-dasharray="4 3"/>
+          <text x="434" y="22" text-anchor="middle" fill="#9aa4b2" font-size="9.5" font-family="ui-monospace, monospace">Tailscale</text>
+          <line x1="190" y1="46" x2="190" y2="86" stroke="#7aa2f7" stroke-width="1.6" marker-end="url(#ah)"/>
+          <text x="198" y="70" fill="#9dc1ff" font-size="9.5" font-family="ui-monospace, monospace">power on</text>
+
+          <!-- host chassis -->
+          <rect x="20" y="88" width="720" height="368" rx="12" fill="#0e141c" stroke="#2a3647"/>
+          <text x="36" y="110" fill="#e6edf3" font-size="13" font-weight="600">Huananzhi X99-BD4 &mdash; Ubuntu, Linux 5.15</text>
+          <text x="36" y="126" fill="#9aa4b2" font-size="10.5" font-family="ui-monospace, monospace">host &middot; patched NVIDIA 610 open driver (cmpunlocker)</text>
+
+          <!-- host-side GPU: CMP 40HX -->
+          <rect x="44" y="140" width="300" height="38" rx="7" fill="#111823" stroke="#1f2937"/>
+          <text x="194" y="164" text-anchor="middle" fill="#9dc1ff" font-size="11.5" font-family="ui-monospace, monospace">NVIDIA 610 open &middot; patched</text>
+          <line x1="194" y1="178" x2="194" y2="204" stroke="#7aa2f7" stroke-width="1.5" marker-end="url(#ah)"/>
+          <rect x="48" y="206" width="292" height="104" rx="9" fill="#111823" stroke="#7aa2f7"/>
+          <text x="194" y="230" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="600">CMP 40HX &mdash; TU106</text>
+          <text x="194" y="252" text-anchor="middle" fill="#b7c0cc" font-size="11">FP16 unlocked &middot; 54 TFLOPS</text>
+          <text x="194" y="272" text-anchor="middle" fill="#b7c0cc" font-size="11">PCIe Gen2 x16 (5 GT/s)</text>
+          <text x="194" y="292" text-anchor="middle" fill="#b7c0cc" font-size="11">BAR1 8 GiB &middot; ReBAR</text>
+
+          <!-- VFIO guest -->
+          <rect x="408" y="138" width="314" height="196" rx="10" fill="#141414" stroke="#e3b341" stroke-dasharray="6 4"/>
+          <text x="424" y="158" fill="#e3b341" font-size="12" font-weight="600">VFIO guest</text>
+          <text x="424" y="173" fill="#9aa4b2" font-size="10.5" font-family="ui-monospace, monospace">KVM/QEMU &middot; OVMF &middot; libvirt</text>
+          <rect x="430" y="182" width="272" height="36" rx="7" fill="#111823" stroke="#1f2937"/>
+          <text x="566" y="205" text-anchor="middle" fill="#9dc1ff" font-size="11.5" font-family="ui-monospace, monospace">NVIDIA 580 closed</text>
+          <line x1="566" y1="218" x2="566" y2="242" stroke="#7aa2f7" stroke-width="1.5" marker-end="url(#ah)"/>
+          <rect x="434" y="244" width="266" height="80" rx="9" fill="#111823" stroke="#e3b341"/>
+          <text x="567" y="268" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="600">Tesla V100 &mdash; GV100</text>
+          <text x="567" y="289" text-anchor="middle" fill="#b7c0cc" font-size="11">16 GB HBM2</text>
+          <text x="567" y="308" text-anchor="middle" fill="#9dc1ff" font-size="10.5" font-family="ui-monospace, monospace">vfio-pci passthrough</text>
+
+          <!-- llama.cpp RPC pooling layer -->
+          <rect x="250" y="372" width="260" height="46" rx="9" fill="#111823" stroke="#bc8cff"/>
+          <text x="380" y="392" text-anchor="middle" fill="#e6edf3" font-size="12.5" font-weight="600">llama.cpp RPC</text>
+          <text x="380" y="408" text-anchor="middle" fill="#b7c0cc" font-size="10.5">pools host + guest GPU</text>
+          <!-- arrows GPUs -> RPC -->
+          <path d="M194,310 L194,350 L300,350 L300,370" fill="none" stroke="#7aa2f7" stroke-width="1.5" marker-end="url(#ah)"/>
+          <path d="M567,324 L567,350 L460,350 L460,370" fill="none" stroke="#7aa2f7" stroke-width="1.5" marker-end="url(#ah)"/>
+          <!-- output -->
+          <line x1="510" y1="395" x2="548" y2="395" stroke="#7aa2f7" stroke-width="1.6" marker-end="url(#ah)"/>
+          <rect x="550" y="376" width="170" height="38" rx="19" fill="#0e141c" stroke="#7ee787"/>
+          <text x="635" y="400" text-anchor="middle" fill="#7ee787" font-size="12" font-weight="600">Qwen3 32B &middot; 24 tok/s</text>
+        </svg>
+        <figcaption>The box today: the host runs the patched 610 driver with the unlocked CMP 40HX, while a Tesla V100 lives in a VFIO guest on the closed 580 driver. llama.cpp pools both over RPC to serve Qwen3 32B. An Orange Pi Zero wakes the whole thing over Tailscale.</figcaption>
+      </figure>
+
+      <p class="meta"><strong>Hosting the V100 on a VM &mdash; key terms:</strong></p>
+      <div class="tags">
+        <span class="tag">IOMMU</span>
+        <span class="tag">VFIO</span>
+        <span class="tag">vfio-pci</span>
+        <span class="tag">GPU passthrough</span>
+        <span class="tag">KVM/QEMU</span>
+        <span class="tag">libvirt</span>
+        <span class="tag">OVMF (UEFI)</span>
+        <span class="tag">Above 4G Decoding</span>
+        <span class="tag">llama.cpp RPC</span>
+      </div>
+
+      <div class="card-grid">
+        <a class="card post-card" href="posts/2026-08-200-bucks-inference-machine.html">
+          <img src="assets/cards/200-bucks-inference-machine.jpg" alt="Two CMP 40HX mining GPUs mounted on the Huananzhi X99 BD4 motherboard">
+          <div class="card-body">
+            <h3>200 Bucks Inference Machine</h3>
+            <p>Where the build started: mining GPUs turned into a local inference server, with a PCIe x16 capacitor mod, patched CUDA kernels, and KV cache reuse on Gemma 4 cutting time to first token from 54 s to 0.27 s.</p>
+            <div class="tags">
+              <span class="tag">Linux</span>
+              <span class="tag">PCIe</span>
+              <span class="tag">firmware</span>
+            </div>
+          </div>
+        </a>
+
+        <a class="card post-card" href="posts/2026-09-wake-on-lan-retrofit.html">
+          <img src="assets/cards/wake-on-lan-retrofit.jpg" alt="Orange Pi Zero wired to a relay module next to the X99 BD4 motherboard">
+          <div class="card-body">
+            <h3>Wake on LAN Retrofit</h3>
+            <p>A BIOS with no Wake on LAN, on Wi-Fi that isolates clients: a Python listener on an Orange Pi Zero validates magic packets over Tailscale and presses the X99's power button with a relay.</p>
+            <div class="tags">
+              <span class="tag">Python</span>
+              <span class="tag">systemd</span>
+              <span class="tag">GPIO</span>
+              <span class="tag">Tailscale</span>
+            </div>
+          </div>
+        </a>
+
+        <a class="card post-card" href="posts/2026-10-x99-rebar-flashing.html">
+          <img src="assets/cards/x99-rebar.jpg" alt="Arc B580 mounted on the Huananzhi X99-BD4 test bench">
+          <div class="card-body">
+            <h3>Resizable BAR on X99</h3>
+            <p>Inserting ReBarDxe into the X99-BD4 BIOS, and catching a 16-byte corruption UEFITool left in a volume I never touched.</p>
+            <div class="tags">
+              <span class="tag">UEFI</span>
+              <span class="tag">ReBarDxe</span>
+              <span class="tag">firmware</span>
+            </div>
+          </div>
+        </a>
+
+        <a class="card post-card" href="posts/2026-10-cmp40hx-unlock.html">
+          <img src="assets/cards/cmp40hx-unlock.jpg" alt="Terminal showing the CMP 40HX link retrained to 5GT/s x16">
+          <div class="card-body">
+            <h3>CMP 40HX: PCIe 2.0, ReBAR and FP16 Unlock</h3>
+            <p>Patched NVIDIA kernel modules lift the mining card's limits. FP16 went from 0.98 to 54 TFLOPS, generation doubled, and a manual root port retrain got Gen2 working on X99.</p>
+            <div class="tags">
+              <span class="tag">NVIDIA drivers</span>
+              <span class="tag">PCIe</span>
+              <span class="tag">setpci</span>
+            </div>
+          </div>
+        </a>
+
+        <a class="card post-card" href="posts/2026-10-v100-vfio-rpc.html">
+          <div class="card-body">
+            <h3>V100 + CMP 40HX: Two Drivers, One Box</h3>
+            <p>A Tesla V100 passed through to a KVM guest with vfio-pci so it can run the closed 580 driver, while the host keeps the patched 610 for the CMP. llama.cpp RPC pools both GPUs to serve Qwen3 32B at 24 tok/s.</p>
+            <div class="tags">
+              <span class="tag">VFIO</span>
+              <span class="tag">KVM/QEMU</span>
+              <span class="tag">libvirt</span>
+              <span class="tag">llama.cpp</span>
+            </div>
+          </div>
+        </a>
+
+        <div class="card">
+          <img src="assets/cards/x99-recreation.jpg" alt="Terminal showing the Ansible roles, a verify warning about the next-boot kernel, and a passing dry run">
+          <div class="card-body">
+            <h3><a href="https://github.com/jyeh2/X99-Recreation">X99 Recreation (Ansible)</a></h3>
+            <p>The whole box as code: 7 Ansible roles distilled from 1,661 lines of shell history. It pins the NVIDIA open driver, rebuilds the patched CMP 40HX modules for every new kernel, and retrains the PCIe link to Gen2 at boot. Its verify step caught a kernel update that would have booted the stock driver.</p>
+            <p class="pin-links"><a href="https://github.com/jyeh2/X99-Recreation">Source</a></p>
+            <div class="tags">
+              <span class="tag">Ansible</span>
+              <span class="tag">systemd</span>
+              <span class="tag">Linux</span>
+              <span class="tag">NVIDIA drivers</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <h2>Software and Systems Work</h2>
 
     <div class="card-grid">
       <div class="card">
-        <img src="assets/cards/x99-recreation.jpg" alt="Terminal showing the Ansible roles, a verify warning about the next-boot kernel, and a passing dry run">
         <div class="card-body">
-          <h3><a href="https://github.com/jyeh2/X99-Recreation">X99 Recreation</a></h3>
-          <p>Ansible playbook that rebuilds the X99 inference server from a fresh Ubuntu install: 7 roles distilled from 1,661 lines of shell history. It pins the NVIDIA open driver, rebuilds the patched CMP 40HX modules for every new kernel, and retrains the PCIe link to Gen2 at boot. Its verify step caught a kernel update that would have booted the stock driver.</p>
-          <p class="pin-links"><a href="https://github.com/jyeh2/X99-Recreation">Source</a></p>
+          <h3><a href="https://github.com/jyeh2/interconnect-cap-ml">ML Surrogates for Interconnect Parasitics</a></h3>
+          <p>A 2D finite-volume capacitance field solver in C++17 generates 4,292 labeled geometries, then a PyTorch MLP predicts coupling capacitance within 0.5% &mdash; 3.6 million&times; faster than the solver, and beating the 1983 Sakurai&ndash;Tamaru formula and an XGBoost baseline outside the training range.</p>
+          <p class="pin-links"><a href="https://github.com/jyeh2/interconnect-cap-ml">Source</a></p>
           <div class="tags">
-            <span class="tag">Ansible</span>
-            <span class="tag">systemd</span>
-            <span class="tag">Linux</span>
-            <span class="tag">NVIDIA drivers</span>
+            <span class="tag">C++17</span>
+            <span class="tag">OpenMP</span>
+            <span class="tag">PyTorch</span>
+            <span class="tag">XGBoost</span>
           </div>
         </div>
       </div>
+
       <a class="card post-card" href="posts/2026-09-local-llm-extraction-benchmark.html">
         <img src="assets/cards/local-llm-benchmark.jpg" alt="Bar chart of extraction precision: Gemma 4 E4B 95%, Qwen3.5 4B 83%, Qwen3 8B 63%, Qwen2.5 3B 43%">
         <div class="card-body">
@@ -223,47 +392,9 @@
       </div>
     </div>
 
-    <h2>Hardware and Firmware</h2>
+    <h2>Intel Arc: Firmware &amp; Repair</h2>
 
     <div class="card-grid">
-      <a class="card post-card" href="posts/2026-10-cmp40hx-unlock.html">
-        <img src="assets/cards/cmp40hx-unlock.jpg" alt="Terminal showing the CMP 40HX link retrained to 5GT/s x16">
-        <div class="card-body">
-          <h3>CMP 40HX: PCIe 2.0, ReBAR and FP16 Unlock</h3>
-          <p>Patched NVIDIA kernel modules lift the mining card's limits. FP16 went from 0.98 to 54 TFLOPS, generation doubled, and a manual root port retrain got Gen2 working on X99.</p>
-        </div>
-      </a>
-
-      <a class="card post-card" href="posts/2026-09-wake-on-lan-retrofit.html">
-        <img src="assets/cards/wake-on-lan-retrofit.jpg" alt="Orange Pi Zero wired to a relay module next to the X99 BD4 motherboard">
-        <div class="card-body">
-          <h3>Wake on LAN Retrofit</h3>
-          <p>A BIOS with no Wake on LAN, on Wi-Fi that isolates clients: a Python listener on an Orange Pi Zero validates magic packets over Tailscale and presses the X99's power button with a relay.</p>
-          <div class="tags">
-            <span class="tag">Python</span>
-            <span class="tag">systemd</span>
-            <span class="tag">GPIO</span>
-            <span class="tag">Tailscale</span>
-          </div>
-        </div>
-      </a>
-
-      <a class="card post-card" href="posts/2026-08-200-bucks-inference-machine.html">
-        <img src="assets/cards/200-bucks-inference-machine.jpg" alt="Two CMP 40HX mining GPUs mounted on the Huananzhi X99 BD4 motherboard">
-        <div class="card-body">
-          <h3>200 Bucks Inference Machine</h3>
-          <p>Mining GPUs turned into a local inference server: PCIe x16 capacitor mod, patched CUDA kernels, and KV cache reuse on Gemma 4 cutting time to first token from 54 s to 0.27 s.</p>
-        </div>
-      </a>
-
-      <a class="card post-card" href="posts/2026-10-x99-rebar-flashing.html">
-        <img src="assets/cards/x99-rebar.jpg" alt="Arc B580 mounted on the Huananzhi X99-BD4 test bench">
-        <div class="card-body">
-          <h3>Resizable BAR on X99 for the Arc B580</h3>
-          <p>Inserting ReBarDxe into the X99-BD4 BIOS, and catching a 16-byte corruption UEFITool left in a volume I never touched.</p>
-        </div>
-      </a>
-
       <a class="card post-card" href="posts/2026-06-arc-b580-bios-flashing.html">
         <img src="assets/cards/arc-b580-bios-flashing.jpg" alt="Flashrom terminal session next to a disassembled Arc B580">
         <div class="card-body">
