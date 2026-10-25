@@ -17,6 +17,7 @@
     <p>Photos from GPU repairs and teardowns that didn&rsquo;t get a full write-up. The Intel Arc repairs that did are on the <a href="../#gpu-repair">home page</a>. Click a photo to enlarge it.</p>
 
     <h2>EVGA RTX 2080</h2>
+    <p class="bench-note"><strong>Dead after an overclock.</strong> I pushed the overclock too hard and a DrMOS gave out, shorting to the core rail. Under the microscope the GPU core itself heated up, so the short was in the GPU and the card couldn&rsquo;t be saved.</p>
     <div class="bench-grid">
       <figure>
         <a href="#p1"><img src="../assets/bench/evga-2080.jpg" alt="EVGA GeForce RTX 2080, dual-fan" loading="lazy"></a>
@@ -24,13 +25,14 @@
       </figure>
       <a class="lightbox" id="p1" href="#_"><img src="../assets/bench/evga-2080.jpg" alt="EVGA GeForce RTX 2080, dual-fan" loading="lazy"></a>
       <figure>
-        <a href="#p2"><img src="../assets/bench/evga-2080-mosfets.jpg" alt="Burnt MOSFETs at Q21 and Q22, with charring on the board between them" loading="lazy"></a>
-        <figcaption>Burnt MOSFETs at Q21 and Q22, with charring on the board between them</figcaption>
+        <a href="#p2"><img src="../assets/bench/evga-2080-mosfets.jpg" alt="Burnt DrMOS stages at Q21 and Q22, with charring on the board between them" loading="lazy"></a>
+        <figcaption>Burnt DrMOS stages at Q21 and Q22, with charring on the board between them</figcaption>
       </figure>
-      <a class="lightbox" id="p2" href="#_"><img src="../assets/bench/evga-2080-mosfets.jpg" alt="Burnt MOSFETs at Q21 and Q22, with charring on the board between them" loading="lazy"></a>
+      <a class="lightbox" id="p2" href="#_"><img src="../assets/bench/evga-2080-mosfets.jpg" alt="Burnt DrMOS stages at Q21 and Q22, with charring on the board between them" loading="lazy"></a>
     </div>
 
     <h2>Gigabyte RTX 2080</h2>
+    <p class="bench-note"><strong>TMON fault, fixed.</strong> One DrMOS power stage&rsquo;s temperature-monitor (TMON) circuit was misbehaving. Each stage has its own TMON line, so I disconnected them one at a time by flipping the capacitor on each line until I found the stage causing the fault. Method from northwestrepair&rsquo;s <a href="https://www.youtube.com/watch?v=lblWSta8iIk">Gigabyte 2080 Super repair (how to find half dead DRMOS)</a>.</p>
     <div class="bench-grid">
       <figure>
         <a href="#p3"><img src="../assets/bench/gigabyte-2080-cooler-off.jpg" alt="Cooler off: GPU die, memory, VRM and thermal pads" loading="lazy"></a>
@@ -45,6 +47,7 @@
     </div>
 
     <h2>ASRock RX 6700 XT</h2>
+    <p class="bench-note"><strong>Repad, repaste, undervolt.</strong> New thermal pads and paste, then used for undervolting.</p>
     <div class="bench-grid">
       <figure>
         <a href="#p5"><img src="../assets/bench/asrock-6700xt-teardown.jpg" alt="Cooler and board separated" loading="lazy"></a>

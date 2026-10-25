@@ -665,3 +665,7 @@ a.card.pin h3 {
   margin-top: 6px;
   line-height: 1.4;
 }
+.bench-note {
+  font-size: 0.95em;
+  margin: 0 0 4px;
+}
