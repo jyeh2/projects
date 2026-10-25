@@ -1,24 +1,27 @@
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap");
 
 :root {
-  --paper: #f6f3ec;
-  --card: #fbf9f4;
-  --ink: #1f1d1a;
-  --body: #36322c;
-  --muted: #6e675c;
-  --rule: #dcd5c8;
-  --rule-soft: #e8e2d6;
-  --code-bg: #ece7dc;
-  --accent: #a3401b;
-  --accent-soft: #c9906f;
-  --serif: "Source Serif 4", Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+  --paper: #ffffff;
+  --card: #ffffff;
+  --ink: #111111;
+  --body: #262626;
+  --muted: #6b6b6b;
+  --rule: #d4d4d4;
+  --rule-soft: #ebebeb;
+  --code-bg: #f2f2f2;
+  --accent: #111111;
+  --accent-soft: #9a9a9a;
+  --hl: #ffe94d;
+  --hl-ink: #111111;
+  --serif: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --display: "IBM Plex Sans Condensed", "IBM Plex Sans", "Arial Narrow", sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   color-scheme: light;
 }
 
 body {
   font-family: var(--serif);
-  font-size: 18px;
+  font-size: 17px;
   line-height: 1.6;
   margin: 0;
   background: var(--paper);
@@ -31,36 +34,42 @@ body {
 }
 h1, h2, h3 {
   color: var(--ink);
-  font-weight: 600;
-  line-height: 1.25;
+  font-family: var(--display);
+  font-weight: 700;
+  line-height: 1.2;
 }
 h1 {
-  font-size: 2.1em;
-  letter-spacing: -0.01em;
+  font-size: 2.4em;
+  letter-spacing: -0.015em;
   margin: 0.3em 0 0.5em;
 }
 a {
   color: var(--accent);
   text-decoration: underline;
   text-decoration-thickness: 1px;
-  text-underline-offset: 2px;
+  text-underline-offset: 3px;
   text-decoration-color: var(--accent-soft);
 }
 a:hover {
-  text-decoration-color: var(--accent);
+  background: var(--hl);
+  color: var(--hl-ink);
+  text-decoration-color: currentColor;
+}
+a.card:hover, a.stat:hover, .card-grid a:hover, .bench-grid a:hover, .lightbox:hover {
+  background: none;
 }
 code {
   font-family: var(--mono);
   font-size: 0.82em;
   background: var(--code-bg);
   padding: 1px 4px;
-  border-radius: 2px;
+  border-radius: 0;
 }
 pre {
   font-family: var(--mono);
   font-size: 0.8em;
   background: var(--code-bg);
-  border-left: 2px solid var(--rule);
+  border-left: 3px solid var(--ink);
   padding: 12px 16px;
   overflow-x: auto;
   line-height: 1.5;
@@ -87,7 +96,6 @@ pre code {
 .diagram figcaption {
   margin-top: 10px;
   font-size: 0.88em;
-  font-style: italic;
   color: var(--muted);
 }
 .meta {
@@ -134,29 +142,27 @@ img + img {
 
 .kicker {
   font-size: 0.92em;
-  font-style: italic;
   color: var(--muted);
   margin: 0 0 4px;
 }
 
 h2 {
-  font-size: 1.45em;
-  margin-top: 56px;
-  padding-top: 20px;
-  border-top: 1px solid var(--rule);
+  font-size: 1.5em;
+  margin-top: 60px;
+  padding-top: 14px;
+  border-top: 4px solid var(--ink);
 }
 
 .latest {
   margin: 36px 0 40px;
 }
 h2.section-label {
-  margin: 0 0 6px;
-  padding: 0;
-  border: 0;
-  font-size: 1em;
-  font-style: italic;
-  font-weight: 400;
-  color: var(--muted);
+  margin: 0 0 8px;
+  padding: 6px 0 0;
+  border-top: 2px solid var(--ink);
+  font-size: 0.95em;
+  font-weight: 700;
+  color: var(--ink);
 }
 .latest-list {
   list-style: none;
@@ -209,7 +215,7 @@ h2.section-label {
   flex-direction: column;
   background: var(--card);
   border: 1px solid var(--rule);
-  border-radius: 3px;
+  border-radius: 0;
   overflow: hidden;
 }
 a.card {
@@ -217,12 +223,14 @@ a.card {
   text-decoration: none;
 }
 a.card:hover h3 {
+  background: var(--hl);
+  color: var(--hl-ink);
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
 }
 a.card:hover {
-  border-color: var(--accent-soft);
+  border-color: var(--ink);
 }
 
 .card-grid img {
@@ -287,7 +295,7 @@ figure.chart {
   padding: 18px 18px 10px;
   background: var(--card);
   border: 1px solid var(--rule);
-  border-radius: 3px;
+  border-radius: 0;
 }
 figure.chart svg {
   display: block;
@@ -299,7 +307,6 @@ figure.chart + figcaption,
 figure.chart figcaption {
   color: var(--muted);
   font-size: 0.85em;
-  font-style: italic;
   margin: 0 0 24px;
 }
 .chart .ptitle { fill: var(--ink); font-size: 14px; font-weight: 600; }
@@ -327,9 +334,9 @@ table.data td {
   border-bottom: 1px solid var(--rule-soft);
 }
 table.data th {
-  color: var(--muted);
+  color: var(--ink);
   font-weight: 600;
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 2px solid var(--ink);
 }
 table.data tr.sub th {
   font-weight: 400;
@@ -346,7 +353,7 @@ table.data tr.sub th {
   gap: 1px;
   margin: 24px 0 8px;
   background: var(--rule-soft);
-  border-top: 1px solid var(--rule);
+  border-top: 2px solid var(--ink);
   border-bottom: 1px solid var(--rule);
 }
 .stat {
@@ -357,12 +364,14 @@ table.data tr.sub th {
   text-decoration: none;
 }
 a.stat:hover .num {
-  color: var(--accent);
+  background: var(--hl);
+  color: var(--hl-ink);
 }
 .stat .num {
   display: block;
-  font-size: 1.4em;
-  font-weight: 600;
+  font-family: var(--display);
+  font-size: 1.5em;
+  font-weight: 700;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
@@ -379,7 +388,7 @@ a.stat:hover .num {
   grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
   background: var(--card);
   border: 1px solid var(--rule);
-  border-radius: 3px;
+  border-radius: 0;
   overflow: hidden;
   margin: 24px 0 8px;
 }
@@ -447,10 +456,10 @@ a.stat:hover .num {
 }
 
 .summary {
-  border-left: 2px solid var(--accent);
-  padding: 2px 0 2px 16px;
+  border-left: 4px solid var(--ink);
+  background: var(--code-bg);
+  padding: 12px 16px;
   margin: 20px 0 8px;
-  font-style: italic;
 }
 .series {
   font-size: 0.85em;
@@ -476,15 +485,15 @@ a.stat:hover .num {
   padding: 16px 18px 16px;
 }
 .pin .num {
-  font-size: 1.7em;
-  font-weight: 600;
+  font-family: var(--display);
+  font-size: 1.9em;
+  font-weight: 700;
   line-height: 1.15;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
 .pin .what {
   font-size: 0.82em;
-  font-style: italic;
   color: var(--muted);
   margin: 2px 0 12px;
 }
@@ -495,7 +504,7 @@ a.stat:hover .num {
 }
 .pin h3 a,
 a.card.pin h3 {
-  color: var(--accent);
+  color: var(--ink);
 }
 .pin p {
   margin: 0 0 12px;
@@ -531,27 +540,29 @@ a.card.pin h3 {
 /* ---- dark theme: system default unless the visitor picked light; or picked dark ---- */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-  --paper: #1a1815;
-  --card: #221f1b;
-  --ink: #ece6da;
-  --body: #cfc7b8;
-  --muted: #9a917f;
-  --rule: #3a352d;
-  --rule-soft: #2d2924;
-  --code-bg: #2a2621;
-  --accent: #e8926a;
-  --accent-soft: #8f5d45;
+  --paper: #121212;
+  --card: #181818;
+  --ink: #f0f0f0;
+  --body: #d4d4d4;
+  --muted: #9a9a9a;
+  --rule: #3a3a3a;
+  --rule-soft: #262626;
+  --code-bg: #1f1f1f;
+  --accent: #ffe94d;
+  --accent-soft: #8a7d2a;
+  --hl: #ffe94d;
+  --hl-ink: #111111;
   color-scheme: dark;
   }
-  :root:not([data-theme="light"]) svg [fill="#f3efe6"] { fill: #1e1b17; }
-  :root:not([data-theme="light"]) svg [fill="#fbf9f4"] { fill: #26221d; }
-  :root:not([data-theme="light"]) svg [fill="#f8f1e0"] { fill: #2a2418; }
-  :root:not([data-theme="light"]) svg [fill="#d6cfc2"] { fill: #4a443a; }
-  :root:not([data-theme="light"]) svg [fill="#bdb4a4"] { fill: #5a5346; }
-  :root:not([data-theme="light"]) svg [fill="#ece7dc"] { fill: #2a2621; }
-  :root:not([data-theme="light"]) svg [fill="#1f1d1a"] { fill: #ece6da; }
-  :root:not([data-theme="light"]) svg [fill="#4a453e"] { fill: #cfc7b8; }
-  :root:not([data-theme="light"]) svg [fill="#6e675c"] { fill: #9a917f; }
+  :root:not([data-theme="light"]) svg [fill="#f4f4f4"] { fill: #161616; }
+  :root:not([data-theme="light"]) svg [fill="#ffffff"] { fill: #1c1c1c; }
+  :root:not([data-theme="light"]) svg [fill="#fff8e1"] { fill: #221f12; }
+  :root:not([data-theme="light"]) svg [fill="#cccccc"] { fill: #454545; }
+  :root:not([data-theme="light"]) svg [fill="#999999"] { fill: #5c5c5c; }
+  :root:not([data-theme="light"]) svg [fill="#eeeeee"] { fill: #222222; }
+  :root:not([data-theme="light"]) svg [fill="#111111"] { fill: #f0f0f0; }
+  :root:not([data-theme="light"]) svg [fill="#333333"] { fill: #d4d4d4; }
+  :root:not([data-theme="light"]) svg [fill="#666666"] { fill: #9a9a9a; }
   :root:not([data-theme="light"]) svg [fill="#2f5a94"] { fill: #8db4ec; }
   :root:not([data-theme="light"]) svg [fill="#3b6aa8"] { fill: #7aa2f7; }
   :root:not([data-theme="light"]) svg [fill="#9a6c05"] { fill: #e3b341; }
@@ -559,15 +570,15 @@ a.card.pin h3 {
   :root:not([data-theme="light"]) svg [fill="#a3401b"] { fill: #f7a08a; }
   :root:not([data-theme="light"]) svg [fill="#7a4bb8"] { fill: #bc8cff; }
   :root:not([data-theme="light"]) svg [fill="#2c7a3a"] { fill: #7ee787; }
-  :root:not([data-theme="light"]) svg [stroke="#f3efe6"] { stroke: #1e1b17; }
-  :root:not([data-theme="light"]) svg [stroke="#fbf9f4"] { stroke: #26221d; }
-  :root:not([data-theme="light"]) svg [stroke="#f8f1e0"] { stroke: #2a2418; }
-  :root:not([data-theme="light"]) svg [stroke="#d6cfc2"] { stroke: #4a443a; }
-  :root:not([data-theme="light"]) svg [stroke="#bdb4a4"] { stroke: #5a5346; }
-  :root:not([data-theme="light"]) svg [stroke="#ece7dc"] { stroke: #2a2621; }
-  :root:not([data-theme="light"]) svg [stroke="#1f1d1a"] { stroke: #ece6da; }
-  :root:not([data-theme="light"]) svg [stroke="#4a453e"] { stroke: #cfc7b8; }
-  :root:not([data-theme="light"]) svg [stroke="#6e675c"] { stroke: #9a917f; }
+  :root:not([data-theme="light"]) svg [stroke="#f4f4f4"] { stroke: #161616; }
+  :root:not([data-theme="light"]) svg [stroke="#ffffff"] { stroke: #1c1c1c; }
+  :root:not([data-theme="light"]) svg [stroke="#fff8e1"] { stroke: #221f12; }
+  :root:not([data-theme="light"]) svg [stroke="#cccccc"] { stroke: #454545; }
+  :root:not([data-theme="light"]) svg [stroke="#999999"] { stroke: #5c5c5c; }
+  :root:not([data-theme="light"]) svg [stroke="#eeeeee"] { stroke: #222222; }
+  :root:not([data-theme="light"]) svg [stroke="#111111"] { stroke: #f0f0f0; }
+  :root:not([data-theme="light"]) svg [stroke="#333333"] { stroke: #d4d4d4; }
+  :root:not([data-theme="light"]) svg [stroke="#666666"] { stroke: #9a9a9a; }
   :root:not([data-theme="light"]) svg [stroke="#2f5a94"] { stroke: #8db4ec; }
   :root:not([data-theme="light"]) svg [stroke="#3b6aa8"] { stroke: #7aa2f7; }
   :root:not([data-theme="light"]) svg [stroke="#9a6c05"] { stroke: #e3b341; }
@@ -577,27 +588,29 @@ a.card.pin h3 {
   :root:not([data-theme="light"]) svg [stroke="#2c7a3a"] { stroke: #7ee787; }
 }
 :root[data-theme="dark"] {
-  --paper: #1a1815;
-  --card: #221f1b;
-  --ink: #ece6da;
-  --body: #cfc7b8;
-  --muted: #9a917f;
-  --rule: #3a352d;
-  --rule-soft: #2d2924;
-  --code-bg: #2a2621;
-  --accent: #e8926a;
-  --accent-soft: #8f5d45;
+  --paper: #121212;
+  --card: #181818;
+  --ink: #f0f0f0;
+  --body: #d4d4d4;
+  --muted: #9a9a9a;
+  --rule: #3a3a3a;
+  --rule-soft: #262626;
+  --code-bg: #1f1f1f;
+  --accent: #ffe94d;
+  --accent-soft: #8a7d2a;
+  --hl: #ffe94d;
+  --hl-ink: #111111;
   color-scheme: dark;
 }
-:root[data-theme="dark"] svg [fill="#f3efe6"] { fill: #1e1b17; }
-:root[data-theme="dark"] svg [fill="#fbf9f4"] { fill: #26221d; }
-:root[data-theme="dark"] svg [fill="#f8f1e0"] { fill: #2a2418; }
-:root[data-theme="dark"] svg [fill="#d6cfc2"] { fill: #4a443a; }
-:root[data-theme="dark"] svg [fill="#bdb4a4"] { fill: #5a5346; }
-:root[data-theme="dark"] svg [fill="#ece7dc"] { fill: #2a2621; }
-:root[data-theme="dark"] svg [fill="#1f1d1a"] { fill: #ece6da; }
-:root[data-theme="dark"] svg [fill="#4a453e"] { fill: #cfc7b8; }
-:root[data-theme="dark"] svg [fill="#6e675c"] { fill: #9a917f; }
+:root[data-theme="dark"] svg [fill="#f4f4f4"] { fill: #161616; }
+:root[data-theme="dark"] svg [fill="#ffffff"] { fill: #1c1c1c; }
+:root[data-theme="dark"] svg [fill="#fff8e1"] { fill: #221f12; }
+:root[data-theme="dark"] svg [fill="#cccccc"] { fill: #454545; }
+:root[data-theme="dark"] svg [fill="#999999"] { fill: #5c5c5c; }
+:root[data-theme="dark"] svg [fill="#eeeeee"] { fill: #222222; }
+:root[data-theme="dark"] svg [fill="#111111"] { fill: #f0f0f0; }
+:root[data-theme="dark"] svg [fill="#333333"] { fill: #d4d4d4; }
+:root[data-theme="dark"] svg [fill="#666666"] { fill: #9a9a9a; }
 :root[data-theme="dark"] svg [fill="#2f5a94"] { fill: #8db4ec; }
 :root[data-theme="dark"] svg [fill="#3b6aa8"] { fill: #7aa2f7; }
 :root[data-theme="dark"] svg [fill="#9a6c05"] { fill: #e3b341; }
@@ -605,15 +618,15 @@ a.card.pin h3 {
 :root[data-theme="dark"] svg [fill="#a3401b"] { fill: #f7a08a; }
 :root[data-theme="dark"] svg [fill="#7a4bb8"] { fill: #bc8cff; }
 :root[data-theme="dark"] svg [fill="#2c7a3a"] { fill: #7ee787; }
-:root[data-theme="dark"] svg [stroke="#f3efe6"] { stroke: #1e1b17; }
-:root[data-theme="dark"] svg [stroke="#fbf9f4"] { stroke: #26221d; }
-:root[data-theme="dark"] svg [stroke="#f8f1e0"] { stroke: #2a2418; }
-:root[data-theme="dark"] svg [stroke="#d6cfc2"] { stroke: #4a443a; }
-:root[data-theme="dark"] svg [stroke="#bdb4a4"] { stroke: #5a5346; }
-:root[data-theme="dark"] svg [stroke="#ece7dc"] { stroke: #2a2621; }
-:root[data-theme="dark"] svg [stroke="#1f1d1a"] { stroke: #ece6da; }
-:root[data-theme="dark"] svg [stroke="#4a453e"] { stroke: #cfc7b8; }
-:root[data-theme="dark"] svg [stroke="#6e675c"] { stroke: #9a917f; }
+:root[data-theme="dark"] svg [stroke="#f4f4f4"] { stroke: #161616; }
+:root[data-theme="dark"] svg [stroke="#ffffff"] { stroke: #1c1c1c; }
+:root[data-theme="dark"] svg [stroke="#fff8e1"] { stroke: #221f12; }
+:root[data-theme="dark"] svg [stroke="#cccccc"] { stroke: #454545; }
+:root[data-theme="dark"] svg [stroke="#999999"] { stroke: #5c5c5c; }
+:root[data-theme="dark"] svg [stroke="#eeeeee"] { stroke: #222222; }
+:root[data-theme="dark"] svg [stroke="#111111"] { stroke: #f0f0f0; }
+:root[data-theme="dark"] svg [stroke="#333333"] { stroke: #d4d4d4; }
+:root[data-theme="dark"] svg [stroke="#666666"] { stroke: #9a9a9a; }
 :root[data-theme="dark"] svg [stroke="#2f5a94"] { stroke: #8db4ec; }
 :root[data-theme="dark"] svg [stroke="#3b6aa8"] { stroke: #7aa2f7; }
 :root[data-theme="dark"] svg [stroke="#9a6c05"] { stroke: #e3b341; }
@@ -632,13 +645,14 @@ a.card.pin h3 {
   color: var(--muted);
   background: var(--card);
   border: 1px solid var(--rule);
-  border-radius: 3px;
+  border-radius: 0;
   padding: 4px 10px;
   cursor: pointer;
 }
 .theme-toggle:hover {
-  color: var(--ink);
-  border-color: var(--accent-soft);
+  color: var(--hl-ink);
+  background: var(--hl);
+  border-color: var(--ink);
 }
 
 .bench-grid {
@@ -656,7 +670,7 @@ a.card.pin h3 {
   height: 280px;
   object-fit: cover;
   border: 1px solid var(--rule);
-  border-radius: 3px;
+  border-radius: 0;
   cursor: zoom-in;
 }
 .bench-grid figcaption {
