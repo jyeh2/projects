@@ -460,3 +460,18 @@ a.stat:hover {
 div.card.pin:hover {
   transform: none;
 }
+
+.toc {
+  font-size: 0.9em;
+  color: #9aa4b2;
+  margin: 20px 0 0;
+}
+.docs h3 {
+  margin: 28px 0 8px;
+}
+.docs ul, .docs ol {
+  padding-left: 1.4em;
+}
+.docs li {
+  margin: 4px 0;
+}

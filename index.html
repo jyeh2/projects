@@ -27,7 +27,7 @@
           <p class="pin-links"><a href="https://portal.hknucsd.com">Live site</a> &middot; <a href="https://github.com/HKN-UCSD/hkn-portal">Source</a></p>
           <div class="tags"><span class="tag">Django REST</span><span class="tag">Svelte</span><span class="tag">AWS</span><span class="tag">GitHub Actions</span></div>
         </div>
-        <a class="card pin" href="#x99-build">
+        <a class="card pin" href="x99/">
           <span class="num">$200 box</span>
           <span class="what">an unlocked mining GPU beside a Radeon VII on ROCm; swap in a Tesla V100 and it pools Qwen3 32B at 24 tok/s</span>
           <h3>The X99 Build</h3>
@@ -68,30 +68,6 @@
           <span>V100 passed through to a KVM guest on the closed 580 driver, pooled with the unlocked CMP over llama.cpp RPC: Qwen3 32B at 24 tok/s</span>
         </li>
         <li>
-          <time datetime="2026-10">Oct 2026</time>
-          <span class="tag">infra</span>
-          <a href="https://github.com/jyeh2/X99-Recreation">X99 Recreation</a>
-          <span>The whole inference server as Ansible roles, with a kernel hook that keeps the CMP 40HX unlock across updates</span>
-        </li>
-        <li>
-          <time datetime="2026-10">Oct 2026</time>
-          <span class="tag">driver</span>
-          <a href="posts/2026-10-cmp40hx-unlock.html">CMP 40HX Unlock on X99</a>
-          <span>PCIe Gen2, 8 GiB ReBAR and a 55&times; FP16 unlock through patched NVIDIA kernel modules</span>
-        </li>
-        <li>
-          <time datetime="2026-10">Oct 2026</time>
-          <span class="tag">firmware</span>
-          <a href="posts/2026-10-x99-rebar-flashing.html">Resizable BAR on X99</a>
-          <span>ReBarDxe inserted into the X99 BIOS for an Arc B580, after catching a 16-byte UEFITool corruption</span>
-        </li>
-        <li>
-          <time datetime="2026-09">Sep 2026</time>
-          <span class="tag">HW + Python</span>
-          <a href="posts/2026-09-wake-on-lan-retrofit.html">Wake on LAN Retrofit</a>
-          <span>A Python magic packet listener on an Orange Pi Zero presses the X99's power button over Tailscale</span>
-        </li>
-        <li>
           <time datetime="2026-09">Sep 2026</time>
           <span class="tag">Rust</span>
           <a href="posts/2026-09-kvsnap-kv-cache-reuse.html">kvsnap: mistral.rs vs llama.cpp</a>
@@ -99,210 +75,13 @@
         </li>
         <li>
           <time datetime="2026-09">Sep 2026</time>
-          <span class="tag">ML eval</span>
-          <a href="posts/2026-09-local-llm-extraction-benchmark.html">Four Small LLMs on One 8GB Card</a>
-          <span>Extraction benchmark on 78 labeled documents, Gemma 4 E4B at 95% precision</span>
-        </li>
-        <li>
-          <time datetime="2026-09">Sep 2026</time>
           <span class="tag">full stack</span>
           <a href="posts/2026-09-food-trace.html">FoodTrace</a>
           <span>1st of 168 teams at HackCMU: farm-to-shelf provenance on Solana with rotating HMAC QR codes</span>
         </li>
-        <li>
-          <time datetime="2026-08">Aug 2026</time>
-          <span class="tag">hardware</span>
-          <a href="posts/2026-08-200-bucks-inference-machine.html">200 Bucks Inference Machine</a>
-          <span>Local LLM server from secondhand mining GPUs, PCIe x16 capacitor mod</span>
-        </li>
       </ol>
     </section>
 
-    <section class="x99-build" id="x99-build">
-      <h2>The X99 Build</h2>
-      <p>One secondhand Huananzhi X99-BD4 board has become a running theme: a roughly $200 inference server I keep extending. The projects below are chapters in the same machine &mdash; soldering its PCIe lanes, flashing its BIOS, waking it over the network, unlocking the mining GPUs, and running two NVIDIA cards on two different drivers at once, pooled for one model.</p>
-      <p>The second GPU slot now holds an AMD Radeon VII on ROCm, next to the unlocked CMP 40HX. The Tesla V100 goes back into that slot when I want the pooled VFIO setup, and the Radeon comes out.</p>
-
-      <figure class="diagram">
-        <svg viewBox="0 0 940 490" role="img" aria-labelledby="x99diag-title x99diag-desc">
-          <title id="x99diag-title">The X99 inference box</title>
-          <desc id="x99diag-desc">An Orange Pi Zero wakes the X99 host over Tailscale. The host runs the patched NVIDIA 610 open driver with the unlocked CMP 40HX on PCIe Gen2, and an AMD Radeon VII on amdgpu and ROCm 6.3.3, capped at 200 watts. The Radeon VII shares its slot with a Tesla V100: when the V100 is installed it is passed through with vfio-pci to a KVM/QEMU guest running the closed 580 driver, and llama.cpp RPC pools it with the CMP to serve Qwen3 32B at 24 tokens per second.</desc>
-          <defs>
-            <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M0,0 L10,5 L0,10 z" fill="#7aa2f7"/>
-            </marker>
-            <marker id="ah-amd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M0,0 L10,5 L0,10 z" fill="#f78166"/>
-            </marker>
-            <marker id="ah-swap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-              <path d="M0,0 L10,5 L0,10 z" fill="#9aa4b2"/>
-            </marker>
-          </defs>
-
-          <!-- top: wake path over Tailscale -->
-          <rect x="150" y="12" width="250" height="34" rx="7" fill="#111823" stroke="#1f2937"/>
-          <text x="275" y="33" text-anchor="middle" fill="#e6edf3" font-size="12.5">Orange Pi Zero &mdash; WoL listener + relay</text>
-          <rect x="470" y="12" width="110" height="34" rx="7" fill="#111823" stroke="#1f2937"/>
-          <text x="525" y="33" text-anchor="middle" fill="#e6edf3" font-size="12.5">laptop</text>
-          <line x1="400" y1="29" x2="468" y2="29" stroke="#9aa4b2" stroke-width="1.3" stroke-dasharray="4 3"/>
-          <text x="434" y="22" text-anchor="middle" fill="#9aa4b2" font-size="9.5" font-family="ui-monospace, monospace">Tailscale</text>
-          <line x1="190" y1="46" x2="190" y2="86" stroke="#7aa2f7" stroke-width="1.6" marker-end="url(#ah)"/>
-          <text x="198" y="70" fill="#9dc1ff" font-size="9.5" font-family="ui-monospace, monospace">power on</text>
-
-          <!-- host chassis -->
-          <rect x="20" y="88" width="900" height="388" rx="12" fill="#0e141c" stroke="#2a3647"/>
-          <text x="36" y="110" fill="#e6edf3" font-size="13" font-weight="600">Huananzhi X99-BD4 &mdash; Ubuntu host</text>
-          <text x="36" y="126" fill="#9aa4b2" font-size="10.5" font-family="ui-monospace, monospace">host &middot; patched NVIDIA 610 open (cmpunlocker) + amdgpu</text>
-
-          <!-- host-side GPU: CMP 40HX -->
-          <rect x="36" y="140" width="240" height="38" rx="7" fill="#111823" stroke="#1f2937"/>
-          <text x="156" y="164" text-anchor="middle" fill="#9dc1ff" font-size="11.5" font-family="ui-monospace, monospace">NVIDIA 610 open &middot; patched</text>
-          <line x1="156" y1="178" x2="156" y2="204" stroke="#7aa2f7" stroke-width="1.5" marker-end="url(#ah)"/>
-          <rect x="40" y="206" width="232" height="104" rx="9" fill="#111823" stroke="#7aa2f7"/>
-          <text x="156" y="230" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="600">CMP 40HX &mdash; TU106</text>
-          <text x="156" y="252" text-anchor="middle" fill="#b7c0cc" font-size="11">FP16 unlocked &middot; 54 TFLOPS</text>
-          <text x="156" y="272" text-anchor="middle" fill="#b7c0cc" font-size="11">PCIe Gen2 x16 (5 GT/s)</text>
-          <text x="156" y="292" text-anchor="middle" fill="#b7c0cc" font-size="11">BAR1 8 GiB &middot; ReBAR</text>
-
-          <!-- host-side GPU: Radeon VII -->
-          <rect x="300" y="140" width="240" height="38" rx="7" fill="#111823" stroke="#1f2937"/>
-          <text x="420" y="164" text-anchor="middle" fill="#ffa198" font-size="11.5" font-family="ui-monospace, monospace">amdgpu &middot; ROCm 6.3.3</text>
-          <line x1="420" y1="178" x2="420" y2="204" stroke="#f78166" stroke-width="1.5" marker-end="url(#ah-amd)"/>
-          <rect x="304" y="206" width="232" height="104" rx="9" fill="#111823" stroke="#f78166"/>
-          <text x="420" y="230" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="600">Radeon VII &mdash; Vega 20</text>
-          <text x="420" y="252" text-anchor="middle" fill="#b7c0cc" font-size="11">16 GB HBM2 &middot; gfx906</text>
-          <text x="420" y="272" text-anchor="middle" fill="#b7c0cc" font-size="11">PCIe 3.0 x16 (8 GT/s)</text>
-          <text x="420" y="292" text-anchor="middle" fill="#b7c0cc" font-size="11">capped at 200 W</text>
-
-          <!-- Radeon VII and V100 share a slot -->
-          <line x1="542" y1="258" x2="616" y2="258" stroke="#9aa4b2" stroke-width="1.3" stroke-dasharray="3 3" marker-start="url(#ah-swap)" marker-end="url(#ah-swap)"/>
-          <text x="579" y="250" text-anchor="middle" fill="#9aa4b2" font-size="9.5" font-family="ui-monospace, monospace">swap</text>
-          <text x="579" y="274" text-anchor="middle" fill="#9aa4b2" font-size="9.5" font-family="ui-monospace, monospace">slot</text>
-
-          <!-- VFIO guest -->
-          <rect x="620" y="138" width="284" height="196" rx="10" fill="#141414" stroke="#e3b341" stroke-dasharray="6 4"/>
-          <text x="636" y="158" fill="#e3b341" font-size="12" font-weight="600">VFIO guest (when the V100 is in)</text>
-          <text x="636" y="173" fill="#9aa4b2" font-size="10.5" font-family="ui-monospace, monospace">KVM/QEMU &middot; OVMF &middot; libvirt</text>
-          <rect x="640" y="182" width="244" height="36" rx="7" fill="#111823" stroke="#1f2937"/>
-          <text x="762" y="205" text-anchor="middle" fill="#9dc1ff" font-size="11.5" font-family="ui-monospace, monospace">NVIDIA 580 closed</text>
-          <line x1="762" y1="218" x2="762" y2="242" stroke="#7aa2f7" stroke-width="1.5" marker-end="url(#ah)"/>
-          <rect x="644" y="244" width="236" height="80" rx="9" fill="#111823" stroke="#e3b341"/>
-          <text x="762" y="268" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="600">Tesla V100 &mdash; GV100</text>
-          <text x="762" y="289" text-anchor="middle" fill="#b7c0cc" font-size="11">16 GB HBM2</text>
-          <text x="762" y="308" text-anchor="middle" fill="#9dc1ff" font-size="10.5" font-family="ui-monospace, monospace">vfio-pci passthrough</text>
-
-          <!-- llama.cpp RPC pooling layer -->
-          <rect x="330" y="384" width="260" height="46" rx="9" fill="#111823" stroke="#bc8cff"/>
-          <text x="460" y="404" text-anchor="middle" fill="#e6edf3" font-size="12.5" font-weight="600">llama.cpp RPC</text>
-          <text x="460" y="420" text-anchor="middle" fill="#b7c0cc" font-size="10.5">pools the CMP + guest V100</text>
-          <path d="M156,310 L156,358 L380,358 L380,382" fill="none" stroke="#7aa2f7" stroke-width="1.5" marker-end="url(#ah)"/>
-          <path d="M762,324 L762,358 L540,358 L540,382" fill="none" stroke="#7aa2f7" stroke-width="1.5" marker-end="url(#ah)"/>
-          <!-- output -->
-          <line x1="590" y1="407" x2="628" y2="407" stroke="#7aa2f7" stroke-width="1.6" marker-end="url(#ah)"/>
-          <rect x="630" y="388" width="200" height="38" rx="19" fill="#0e141c" stroke="#7ee787"/>
-          <text x="730" y="412" text-anchor="middle" fill="#7ee787" font-size="12" font-weight="600">Qwen3 32B &middot; 24 tok/s</text>
-          <text x="730" y="444" text-anchor="middle" fill="#9aa4b2" font-size="9.5" font-family="ui-monospace, monospace">with the V100 &middot; Ubuntu 22.04 / Linux 5.15</text>
-        </svg>
-        <figcaption>The host runs the unlocked CMP 40HX on the patched 610 driver and a Radeon VII on ROCm, capped at 200 W. The Radeon VII and the Tesla V100 share a slot: with the V100 in, it lives in a VFIO guest on the closed 580 driver, and llama.cpp pools it with the CMP over RPC to serve Qwen3 32B. An Orange Pi Zero wakes the whole thing over Tailscale.</figcaption>
-      </figure>
-
-      <p class="meta"><strong>Hosting the V100 on a VM &mdash; key terms:</strong></p>
-      <div class="tags">
-        <span class="tag">IOMMU</span>
-        <span class="tag">VFIO</span>
-        <span class="tag">vfio-pci</span>
-        <span class="tag">GPU passthrough</span>
-        <span class="tag">KVM/QEMU</span>
-        <span class="tag">libvirt</span>
-        <span class="tag">OVMF (UEFI)</span>
-        <span class="tag">Above 4G Decoding</span>
-        <span class="tag">llama.cpp RPC</span>
-      </div>
-
-      <div class="card-grid">
-        <a class="card post-card" href="posts/2026-08-200-bucks-inference-machine.html">
-          <img src="assets/cards/200-bucks-inference-machine.jpg" alt="Two CMP 40HX mining GPUs mounted on the Huananzhi X99 BD4 motherboard">
-          <div class="card-body">
-            <h3>200 Bucks Inference Machine</h3>
-            <p>Where the build started: mining GPUs turned into a local inference server, with a PCIe x16 capacitor mod, patched CUDA kernels, and KV cache reuse on Gemma 4 cutting time to first token from 54 s to 0.27 s.</p>
-            <div class="tags">
-              <span class="tag">Linux</span>
-              <span class="tag">PCIe</span>
-              <span class="tag">firmware</span>
-            </div>
-          </div>
-        </a>
-
-        <a class="card post-card" href="posts/2026-09-wake-on-lan-retrofit.html">
-          <img src="assets/cards/wake-on-lan-retrofit.jpg" alt="Orange Pi Zero wired to a relay module next to the X99 BD4 motherboard">
-          <div class="card-body">
-            <h3>Wake on LAN Retrofit</h3>
-            <p>A BIOS with no Wake on LAN, on Wi-Fi that isolates clients: a Python listener on an Orange Pi Zero validates magic packets over Tailscale and presses the X99's power button with a relay.</p>
-            <div class="tags">
-              <span class="tag">Python</span>
-              <span class="tag">systemd</span>
-              <span class="tag">GPIO</span>
-              <span class="tag">Tailscale</span>
-            </div>
-          </div>
-        </a>
-
-        <a class="card post-card" href="posts/2026-10-x99-rebar-flashing.html">
-          <img src="assets/cards/x99-rebar.jpg" alt="Arc B580 mounted on the Huananzhi X99-BD4 test bench">
-          <div class="card-body">
-            <h3>Resizable BAR on X99</h3>
-            <p>Inserting ReBarDxe into the X99-BD4 BIOS, and catching a 16-byte corruption UEFITool left in a volume I never touched.</p>
-            <div class="tags">
-              <span class="tag">UEFI</span>
-              <span class="tag">ReBarDxe</span>
-              <span class="tag">firmware</span>
-            </div>
-          </div>
-        </a>
-
-        <a class="card post-card" href="posts/2026-10-cmp40hx-unlock.html">
-          <img src="assets/cards/cmp40hx-unlock.jpg" alt="Terminal showing the CMP 40HX link retrained to 5GT/s x16">
-          <div class="card-body">
-            <h3>CMP 40HX: PCIe 2.0, ReBAR and FP16 Unlock</h3>
-            <p>Patched NVIDIA kernel modules lift the mining card's limits. FP16 went from 0.98 to 54 TFLOPS, generation doubled, and a manual root port retrain got Gen2 working on X99.</p>
-            <div class="tags">
-              <span class="tag">NVIDIA drivers</span>
-              <span class="tag">PCIe</span>
-              <span class="tag">setpci</span>
-            </div>
-          </div>
-        </a>
-
-        <a class="card post-card" href="posts/2026-10-v100-vfio-rpc.html">
-          <img src="assets/cards/v100-cmp-rpc.svg" alt="Schematic: CMP 40HX on the host and a Tesla V100 in a VFIO guest, both feeding a llama.cpp RPC node that outputs 24 tok/s">
-          <div class="card-body">
-            <h3>V100 + CMP 40HX: Two Drivers, One Box</h3>
-            <p>A Tesla V100 passed through to a KVM guest with vfio-pci so it can run the closed 580 driver, while the host keeps the patched 610 for the CMP. llama.cpp RPC pools both GPUs to serve Qwen3 32B at 24 tok/s.</p>
-            <div class="tags">
-              <span class="tag">VFIO</span>
-              <span class="tag">KVM/QEMU</span>
-              <span class="tag">libvirt</span>
-              <span class="tag">llama.cpp</span>
-            </div>
-          </div>
-        </a>
-
-        <div class="card">
-          <img src="assets/cards/x99-recreation.jpg" alt="Terminal showing the Ansible roles, a verify warning about the next-boot kernel, and a passing dry run">
-          <div class="card-body">
-            <h3><a href="https://github.com/jyeh2/X99-Recreation">X99 Recreation (Ansible)</a></h3>
-            <p>The whole box as code: 7 Ansible roles distilled from 1,661 lines of shell history. It pins the NVIDIA open driver, rebuilds the patched CMP 40HX modules for every new kernel, and retrains the PCIe link to Gen2 at boot. Its verify step caught a kernel update that would have booted the stock driver.</p>
-            <p class="pin-links"><a href="https://github.com/jyeh2/X99-Recreation">Source</a></p>
-            <div class="tags">
-              <span class="tag">Ansible</span>
-              <span class="tag">systemd</span>
-              <span class="tag">Linux</span>
-              <span class="tag">NVIDIA drivers</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
 
     <h2>Software and Systems Work</h2>
 
@@ -415,9 +194,23 @@
       </div>
     </div>
 
-    <h2>Intel Arc: Firmware &amp; Repair</h2>
+    <h2>Hardware and Firmware</h2>
 
     <div class="card-grid">
+      <a class="card post-card" href="x99/">
+        <img src="assets/cards/200-bucks-inference-machine.jpg" alt="Two CMP 40HX mining GPUs mounted on the Huananzhi X99 BD4 motherboard">
+        <div class="card-body">
+          <h3>The X99 Build</h3>
+          <p>A $200 secondhand X99 board turned into a multi-GPU inference server: a mining GPU unlocked to 54 FP16 TFLOPS, a Radeon VII on ROCm, and a swap-in V100 in a VFIO guest. Seven write-ups plus setup docs on the project page.</p>
+          <div class="tags">
+            <span class="tag">PCIe</span>
+            <span class="tag">NVIDIA drivers</span>
+            <span class="tag">ROCm</span>
+            <span class="tag">Ansible</span>
+          </div>
+        </div>
+      </a>
+
       <a class="card post-card" href="posts/2026-06-arc-b580-bios-flashing.html">
         <img src="assets/cards/arc-b580-bios-flashing.jpg" alt="Flashrom terminal session next to a disassembled Arc B580">
         <div class="card-body">
