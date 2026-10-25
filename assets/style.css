@@ -55,7 +55,7 @@ a:hover {
   color: var(--hl-ink);
   text-decoration-color: currentColor;
 }
-a.card:hover, a.stat:hover, .card-grid a:hover, .bench-grid a:hover, .lightbox:hover {
+a.card:hover, a.stat:hover, .card > a:hover, .bench-grid a:hover, .lightbox:hover {
   background: none;
 }
 code {
@@ -211,6 +211,7 @@ h2.section-label {
 }
 
 .card {
+  position: relative;
   display: flex;
   flex-direction: column;
   background: var(--card);
@@ -222,15 +223,34 @@ a.card {
   color: inherit;
   text-decoration: none;
 }
-a.card:hover h3 {
+/* Cards that aren't one big link: the title link stretches over the whole
+   card, and the secondary links (Live site, Source, Write-up) sit above it. */
+.card h3 a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.card .pin-links a {
+  position: relative;
+  z-index: 2;
+}
+/* One hover style for every card: dark border, highlighted title. */
+.card:hover {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+.card:hover h3,
+.card:hover h3 a {
   background: var(--hl);
   color: var(--hl-ink);
   text-decoration: underline;
+  text-decoration-color: currentColor;
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
 }
-a.card:hover {
-  border-color: var(--ink);
+.card .pin-links a:hover {
+  background: var(--hl);
 }
 
 .card-grid img {
@@ -248,6 +268,9 @@ a.card:hover {
   flex-direction: column;
   flex: 1;
   padding: 14px 16px 16px;
+}
+.card h3 {
+  align-self: flex-start;  /* highlight hugs the title instead of the full width */
 }
 .card-body h3 {
   margin: 0 0 6px;
