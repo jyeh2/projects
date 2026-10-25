@@ -41,74 +41,74 @@
         <title id="wol-diagram-title">Phone sends a magic packet over Tailscale to the Orange Pi listener, which runs four checks, then pcpower drives GPIO pin 7 to close a relay across the X99's power switch header</title>
         <defs>
           <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-            <path d="M0,0 L10,5 L0,10 z" fill="#7aa2f7"/>
+            <path d="M0,0 L10,5 L0,10 z" fill="#3b6aa8"/>
           </marker>
           <marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-            <path d="M0,0 L10,5 L0,10 z" fill="#9aa4b2"/>
+            <path d="M0,0 L10,5 L0,10 z" fill="#6e675c"/>
           </marker>
         </defs>
 
-        <g font-size="12" fill="#e6edf3">
+        <g font-size="12" fill="#1f1d1a">
           <!-- phone -->
-          <rect x="10" y="45" width="140" height="80" rx="8" fill="#111823" stroke="#24324a"/>
+          <rect x="10" y="45" width="140" height="80" rx="8" fill="#fbf9f4" stroke="#d6cfc2"/>
           <text x="80" y="80" text-anchor="middle" font-size="14" font-weight="600">Phone</text>
-          <text x="80" y="100" text-anchor="middle" fill="#9aa4b2">any WoL app</text>
+          <text x="80" y="100" text-anchor="middle" fill="#6e675c">any WoL app</text>
 
           <!-- phone to listener -->
-          <line x1="150" y1="85" x2="246" y2="85" stroke="#7aa2f7" stroke-width="2" marker-end="url(#arrow)"/>
-          <text x="198" y="75" text-anchor="middle" fill="#9aa4b2" font-size="11">magic packet</text>
-          <text x="198" y="103" text-anchor="middle" fill="#9aa4b2" font-size="11">UDP :9</text>
-          <text x="198" y="117" text-anchor="middle" fill="#9aa4b2" font-size="11">via Tailscale</text>
+          <line x1="150" y1="85" x2="246" y2="85" stroke="#3b6aa8" stroke-width="2" marker-end="url(#arrow)"/>
+          <text x="198" y="75" text-anchor="middle" fill="#6e675c" font-size="11">magic packet</text>
+          <text x="198" y="103" text-anchor="middle" fill="#6e675c" font-size="11">UDP :9</text>
+          <text x="198" y="117" text-anchor="middle" fill="#6e675c" font-size="11">via Tailscale</text>
 
           <!-- listener -->
-          <rect x="250" y="20" width="500" height="130" rx="8" fill="#111823" stroke="#24324a"/>
+          <rect x="250" y="20" width="500" height="130" rx="8" fill="#fbf9f4" stroke="#d6cfc2"/>
           <text x="268" y="44" font-size="14" font-weight="600">Orange Pi Zero</text>
-          <text x="382" y="44" fill="#9aa4b2">wol_listener.py, bound to the Tailscale IP only</text>
+          <text x="382" y="44" fill="#6e675c">wol_listener.py, bound to the Tailscale IP only</text>
 
-          <rect x="269" y="62" width="105" height="40" rx="6" fill="#1a2230" stroke="#24324a"/>
+          <rect x="269" y="62" width="105" height="40" rx="6" fill="#ece7dc" stroke="#d6cfc2"/>
           <text x="321" y="87" text-anchor="middle">1 allowlist</text>
-          <rect x="388" y="62" width="105" height="40" rx="6" fill="#1a2230" stroke="#24324a"/>
+          <rect x="388" y="62" width="105" height="40" rx="6" fill="#ece7dc" stroke="#d6cfc2"/>
           <text x="440" y="87" text-anchor="middle">2 payload</text>
-          <rect x="507" y="62" width="105" height="40" rx="6" fill="#1a2230" stroke="#24324a"/>
+          <rect x="507" y="62" width="105" height="40" rx="6" fill="#ece7dc" stroke="#d6cfc2"/>
           <text x="559" y="87" text-anchor="middle">3 cooldown</text>
-          <rect x="626" y="62" width="105" height="40" rx="6" fill="#1a2230" stroke="#24324a"/>
+          <rect x="626" y="62" width="105" height="40" rx="6" fill="#ece7dc" stroke="#d6cfc2"/>
           <text x="678" y="87" text-anchor="middle">4 X99 off?</text>
 
-          <text x="268" y="132" fill="#9aa4b2" font-size="11">any check fails: log the reason, go back to recvfrom</text>
+          <text x="268" y="132" fill="#6e675c" font-size="11">any check fails: log the reason, go back to recvfrom</text>
 
           <!-- listener to pcpower -->
-          <line x1="320" y1="150" x2="320" y2="226" stroke="#7aa2f7" stroke-width="2" marker-end="url(#arrow)"/>
-          <text x="330" y="193" fill="#9aa4b2" font-size="11">all pass</text>
+          <line x1="320" y1="150" x2="320" y2="226" stroke="#3b6aa8" stroke-width="2" marker-end="url(#arrow)"/>
+          <text x="330" y="193" fill="#6e675c" font-size="11">all pass</text>
 
           <!-- ping -->
-          <line x1="700" y1="150" x2="700" y2="226" stroke="#9aa4b2" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrow-muted)"/>
-          <text x="690" y="185" text-anchor="end" fill="#9aa4b2" font-size="11">check 4: one ping</text>
-          <text x="690" y="199" text-anchor="end" fill="#9aa4b2" font-size="11">over Tailscale, 1 s timeout</text>
+          <line x1="700" y1="150" x2="700" y2="226" stroke="#6e675c" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrow-muted)"/>
+          <text x="690" y="185" text-anchor="end" fill="#6e675c" font-size="11">check 4: one ping</text>
+          <text x="690" y="199" text-anchor="end" fill="#6e675c" font-size="11">over Tailscale, 1 s timeout</text>
 
           <!-- pcpower -->
-          <rect x="250" y="230" width="140" height="80" rx="8" fill="#111823" stroke="#24324a"/>
+          <rect x="250" y="230" width="140" height="80" rx="8" fill="#fbf9f4" stroke="#d6cfc2"/>
           <text x="320" y="265" text-anchor="middle" font-size="14" font-weight="600">pcpower</text>
-          <text x="320" y="285" text-anchor="middle" fill="#9aa4b2">gpioset, line 6</text>
+          <text x="320" y="285" text-anchor="middle" fill="#6e675c">gpioset, line 6</text>
 
           <!-- pcpower to relay -->
-          <line x1="390" y1="270" x2="456" y2="270" stroke="#7aa2f7" stroke-width="2" marker-end="url(#arrow)"/>
-          <text x="423" y="258" text-anchor="middle" fill="#9aa4b2" font-size="11">pin 7</text>
-          <text x="423" y="288" text-anchor="middle" fill="#9aa4b2" font-size="11">300 ms</text>
+          <line x1="390" y1="270" x2="456" y2="270" stroke="#3b6aa8" stroke-width="2" marker-end="url(#arrow)"/>
+          <text x="423" y="258" text-anchor="middle" fill="#6e675c" font-size="11">pin 7</text>
+          <text x="423" y="288" text-anchor="middle" fill="#6e675c" font-size="11">300 ms</text>
 
           <!-- relay -->
-          <rect x="460" y="230" width="130" height="80" rx="8" fill="#111823" stroke="#24324a"/>
+          <rect x="460" y="230" width="130" height="80" rx="8" fill="#fbf9f4" stroke="#d6cfc2"/>
           <text x="525" y="265" text-anchor="middle" font-size="14" font-weight="600">Relay</text>
-          <text x="525" y="285" text-anchor="middle" fill="#9aa4b2">H trigger, 5V coil</text>
+          <text x="525" y="285" text-anchor="middle" fill="#6e675c">H trigger, 5V coil</text>
 
           <!-- relay to X99 -->
-          <line x1="590" y1="270" x2="646" y2="270" stroke="#7aa2f7" stroke-width="2" marker-end="url(#arrow)"/>
-          <text x="618" y="258" text-anchor="middle" fill="#9aa4b2" font-size="11">COM/NO</text>
-          <text x="618" y="288" text-anchor="middle" fill="#9aa4b2" font-size="11">short</text>
+          <line x1="590" y1="270" x2="646" y2="270" stroke="#3b6aa8" stroke-width="2" marker-end="url(#arrow)"/>
+          <text x="618" y="258" text-anchor="middle" fill="#6e675c" font-size="11">COM/NO</text>
+          <text x="618" y="288" text-anchor="middle" fill="#6e675c" font-size="11">short</text>
 
           <!-- X99 -->
-          <rect x="650" y="230" width="100" height="80" rx="8" fill="#111823" stroke="#24324a"/>
+          <rect x="650" y="230" width="100" height="80" rx="8" fill="#fbf9f4" stroke="#d6cfc2"/>
           <text x="700" y="265" text-anchor="middle" font-size="14" font-weight="600">X99</text>
-          <text x="700" y="285" text-anchor="middle" fill="#9aa4b2">PWR_SW</text>
+          <text x="700" y="285" text-anchor="middle" fill="#6e675c">PWR_SW</text>
         </g>
       </svg>
       <figcaption class="meta">One tap, four checks, one 300 ms button press.</figcaption>

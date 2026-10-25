@@ -14,7 +14,7 @@
 
     <h1>Software, Systems &amp; Hardware Projects</h1>
     <p>This is where I write up projects I build outside of coursework: software engineering first, with hardware and firmware experiments alongside.</p>
-    <p>Recently: a full-stack build on Next.js and Solana that won 1st place out of 168 teams at HackCMU, a KV cache reuse patch for the Rust inference engine mistral.rs, and an extraction benchmark of four local LLMs, the last two on an inference server I built from secondhand GPUs.</p>
+    <p>Recently: a full-stack build on Next.js and Solana that won 1st place out of 168 teams at HackCMU, a KV cache reuse patch for the Rust inference engine mistral.rs, and an extraction benchmark of four local LLMs, the last two on <a href="x99/">an inference server I built from secondhand GPUs</a>.</p>
 
     <section class="pinned">
       <h2 class="section-label">Pinned</h2>
@@ -27,13 +27,6 @@
           <p class="pin-links"><a href="https://portal.hknucsd.com">Live site</a> &middot; <a href="https://github.com/HKN-UCSD/hkn-portal">Source</a></p>
           <div class="tags"><span class="tag">Django REST</span><span class="tag">Svelte</span><span class="tag">AWS</span><span class="tag">GitHub Actions</span></div>
         </div>
-        <a class="card pin" href="x99/">
-          <span class="num">$200 box</span>
-          <span class="what">an unlocked mining GPU beside a Radeon VII on ROCm; swap in a Tesla V100 and it pools Qwen3 32B at 24 tok/s</span>
-          <h3>The X99 Build</h3>
-          <p>One secondhand X99 board turned into a multi-GPU inference server: soldered PCIe lanes, a ReBAR BIOS mod, FP16 unlocked 55&times; on the mining cards, a Radeon VII on ROCm, a V100 passed through to a VFIO guest when it&rsquo;s installed, and the whole box rebuilt from one Ansible playbook.</p>
-          <div class="tags"><span class="tag">Linux</span><span class="tag">PCIe</span><span class="tag">ROCm</span><span class="tag">VFIO</span><span class="tag">Ansible</span></div>
-        </a>
         <div class="card pin">
           <span class="num">1.8 s &rarr; 0.5 &micro;s</span>
           <span class="what">per prediction, within 0.5% of a C++ field solver</span>
@@ -62,22 +55,16 @@
           <span>A C++17 finite-volume capacitance solver and a PyTorch surrogate that replaces a ~1.8 s field solve with a 0.5 &micro;s prediction, within 0.5%</span>
         </li>
         <li>
-          <time datetime="2026-10">Oct 2026</time>
-          <span class="tag">infra</span>
-          <a href="posts/2026-10-v100-vfio-rpc.html">V100 + CMP 40HX, Two Drivers</a>
-          <span>V100 passed through to a KVM guest on the closed 580 driver, pooled with the unlocked CMP over llama.cpp RPC: Qwen3 32B at 24 tok/s</span>
-        </li>
-        <li>
-          <time datetime="2026-09">Sep 2026</time>
-          <span class="tag">Rust</span>
-          <a href="posts/2026-09-kvsnap-kv-cache-reuse.html">kvsnap: mistral.rs vs llama.cpp</a>
-          <span>Gemma 4 time to first token from 54 s to 0.27 s with a 17-line mistral.rs patch</span>
-        </li>
-        <li>
           <time datetime="2026-09">Sep 2026</time>
           <span class="tag">full stack</span>
           <a href="posts/2026-09-food-trace.html">FoodTrace</a>
           <span>1st of 168 teams at HackCMU: farm-to-shelf provenance on Solana with rotating HMAC QR codes</span>
+        </li>
+        <li>
+          <time datetime="2026-06">Jun 2026</time>
+          <span class="tag">firmware</span>
+          <a href="posts/2026-06-arc-b580-bios-flashing.html">Arc B580: flash and dump</a>
+          <span>Dumping and reflashing a dead Arc B580&rsquo;s SPI firmware with flashrom</span>
         </li>
       </ol>
     </section>
@@ -100,19 +87,6 @@
           </div>
         </div>
       </div>
-
-      <a class="card post-card" href="posts/2026-09-local-llm-extraction-benchmark.html">
-        <img src="assets/cards/local-llm-benchmark.jpg" alt="Bar chart of extraction precision: Gemma 4 E4B 95%, Qwen3.5 4B 83%, Qwen3 8B 63%, Qwen2.5 3B 43%">
-        <div class="card-body">
-          <h3>Four Small LLMs on One 8GB Card</h3>
-          <p>Benchmarked Gemma 4 E4B and three Qwen models on schema-constrained extraction over 78 hand-labeled documents. Gemma led at 95% precision, beating a model twice its size.</p>
-          <div class="tags">
-            <span class="tag">Ollama</span>
-            <span class="tag">Gemma 4</span>
-            <span class="tag">Qwen</span>
-          </div>
-        </div>
-      </a>
 
       <a class="card post-card" href="posts/2026-09-food-trace.html">
         <img src="assets/cards/food-trace.jpg" alt="FoodTrace verify page for a demo batch of organic tomatoes">
@@ -196,21 +170,9 @@
 
     <h2>Hardware and Firmware</h2>
 
-    <div class="card-grid">
-      <a class="card post-card" href="x99/">
-        <img src="assets/cards/200-bucks-inference-machine.jpg" alt="Two CMP 40HX mining GPUs mounted on the Huananzhi X99 BD4 motherboard">
-        <div class="card-body">
-          <h3>The X99 Build</h3>
-          <p>A $200 secondhand X99 board turned into a multi-GPU inference server: a mining GPU unlocked to 54 FP16 TFLOPS, a Radeon VII on ROCm, and a swap-in V100 in a VFIO guest. Seven write-ups plus setup docs on the project page.</p>
-          <div class="tags">
-            <span class="tag">PCIe</span>
-            <span class="tag">NVIDIA drivers</span>
-            <span class="tag">ROCm</span>
-            <span class="tag">Ansible</span>
-          </div>
-        </div>
-      </a>
+    <p>The X99 inference server and its write-ups have <a href="x99/">their own page</a>. Everything else hardware lives here.</p>
 
+    <div class="card-grid">
       <a class="card post-card" href="posts/2026-06-arc-b580-bios-flashing.html">
         <img src="assets/cards/arc-b580-bios-flashing.jpg" alt="Flashrom terminal session next to a disassembled Arc B580">
         <div class="card-body">
