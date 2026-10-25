@@ -64,7 +64,7 @@
     </section>
 
 
-    <h2>Software and Systems</h2>
+    <h2>Software, Systems and ML</h2>
 
     <div class="card-grid">
       <div class="card">
@@ -95,11 +95,7 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <h2>AI / ML</h2>
-
-    <div class="card-grid">
       <div class="card">
         <img src="assets/cards/ml-surrogates.svg" alt="Schematic: a field-solver mesh with two coupled conductors feeding a PyTorch MLP that predicts in 0.5 microseconds within 0.14%">
         <div class="card-body">
@@ -114,6 +110,32 @@
           </div>
         </div>
       </div>
+
+      <a class="card post-card" href="posts/2026-09-kvsnap-kv-cache-reuse.html">
+        <img src="assets/cards/kvsnap.jpg" alt="Bar chart of time to first token on a 15.6k-token Gemma 4 E4B prompt: llama.cpp cold 85 s, mistral.rs cold 54.4 s, mistral.rs cached 0.27 s">
+        <div class="card-body">
+          <h3>kvsnap: mistral.rs vs llama.cpp</h3>
+          <p>Gemma 4 time to first token from 54 s to 0.27 s on my X99 inference server, with a 17-line KV cache snapshot patch to mistral.rs.</p>
+          <div class="tags">
+            <span class="tag">Rust</span>
+            <span class="tag">mistral.rs</span>
+            <span class="tag">llama.cpp</span>
+          </div>
+        </div>
+      </a>
+
+      <a class="card post-card" href="posts/2026-09-local-llm-extraction-benchmark.html">
+        <img src="assets/cards/local-llm-benchmark.jpg" alt="Bar chart of extraction precision: Gemma 4 E4B 95%, Qwen3.5 4B 83%, Qwen3 8B 63%, Qwen2.5 3B 43%">
+        <div class="card-body">
+          <h3>Four Small LLMs on One 8GB Card</h3>
+          <p>Gemma 4 E4B and three Qwen models on schema-constrained extraction over 78 hand-labeled documents, run on the X99 server&rsquo;s CMP 40HX. Gemma led at 95% precision.</p>
+          <div class="tags">
+            <span class="tag">Ollama</span>
+            <span class="tag">Gemma 4</span>
+            <span class="tag">Qwen</span>
+          </div>
+        </div>
+      </a>
 
       <div class="card">
         <img src="assets/cards/asfunding-chatbot.jpg" alt="AS Office of Student Organizations funding site">
