@@ -13,6 +13,7 @@
   --accent-soft: #c9906f;
   --serif: "Source Serif 4", Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
   --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: light;
 }
 
 body {
@@ -525,4 +526,117 @@ a.card.pin h3 {
 }
 .docs li {
   margin: 4px 0;
+}
+
+/* ---- dark theme: system default unless the visitor picked light; or picked dark ---- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+  --paper: #1a1815;
+  --card: #221f1b;
+  --ink: #ece6da;
+  --body: #cfc7b8;
+  --muted: #9a917f;
+  --rule: #3a352d;
+  --rule-soft: #2d2924;
+  --code-bg: #2a2621;
+  --accent: #e8926a;
+  --accent-soft: #8f5d45;
+  color-scheme: dark;
+  }
+  :root:not([data-theme="light"]) svg [fill="#f3efe6"] { fill: #1e1b17; }
+  :root:not([data-theme="light"]) svg [fill="#fbf9f4"] { fill: #26221d; }
+  :root:not([data-theme="light"]) svg [fill="#f8f1e0"] { fill: #2a2418; }
+  :root:not([data-theme="light"]) svg [fill="#d6cfc2"] { fill: #4a443a; }
+  :root:not([data-theme="light"]) svg [fill="#bdb4a4"] { fill: #5a5346; }
+  :root:not([data-theme="light"]) svg [fill="#ece7dc"] { fill: #2a2621; }
+  :root:not([data-theme="light"]) svg [fill="#1f1d1a"] { fill: #ece6da; }
+  :root:not([data-theme="light"]) svg [fill="#4a453e"] { fill: #cfc7b8; }
+  :root:not([data-theme="light"]) svg [fill="#6e675c"] { fill: #9a917f; }
+  :root:not([data-theme="light"]) svg [fill="#2f5a94"] { fill: #8db4ec; }
+  :root:not([data-theme="light"]) svg [fill="#3b6aa8"] { fill: #7aa2f7; }
+  :root:not([data-theme="light"]) svg [fill="#9a6c05"] { fill: #e3b341; }
+  :root:not([data-theme="light"]) svg [fill="#b8502c"] { fill: #f0886a; }
+  :root:not([data-theme="light"]) svg [fill="#a3401b"] { fill: #f7a08a; }
+  :root:not([data-theme="light"]) svg [fill="#7a4bb8"] { fill: #bc8cff; }
+  :root:not([data-theme="light"]) svg [fill="#2c7a3a"] { fill: #7ee787; }
+  :root:not([data-theme="light"]) svg [stroke="#f3efe6"] { stroke: #1e1b17; }
+  :root:not([data-theme="light"]) svg [stroke="#fbf9f4"] { stroke: #26221d; }
+  :root:not([data-theme="light"]) svg [stroke="#f8f1e0"] { stroke: #2a2418; }
+  :root:not([data-theme="light"]) svg [stroke="#d6cfc2"] { stroke: #4a443a; }
+  :root:not([data-theme="light"]) svg [stroke="#bdb4a4"] { stroke: #5a5346; }
+  :root:not([data-theme="light"]) svg [stroke="#ece7dc"] { stroke: #2a2621; }
+  :root:not([data-theme="light"]) svg [stroke="#1f1d1a"] { stroke: #ece6da; }
+  :root:not([data-theme="light"]) svg [stroke="#4a453e"] { stroke: #cfc7b8; }
+  :root:not([data-theme="light"]) svg [stroke="#6e675c"] { stroke: #9a917f; }
+  :root:not([data-theme="light"]) svg [stroke="#2f5a94"] { stroke: #8db4ec; }
+  :root:not([data-theme="light"]) svg [stroke="#3b6aa8"] { stroke: #7aa2f7; }
+  :root:not([data-theme="light"]) svg [stroke="#9a6c05"] { stroke: #e3b341; }
+  :root:not([data-theme="light"]) svg [stroke="#b8502c"] { stroke: #f0886a; }
+  :root:not([data-theme="light"]) svg [stroke="#a3401b"] { stroke: #f7a08a; }
+  :root:not([data-theme="light"]) svg [stroke="#7a4bb8"] { stroke: #bc8cff; }
+  :root:not([data-theme="light"]) svg [stroke="#2c7a3a"] { stroke: #7ee787; }
+}
+:root[data-theme="dark"] {
+  --paper: #1a1815;
+  --card: #221f1b;
+  --ink: #ece6da;
+  --body: #cfc7b8;
+  --muted: #9a917f;
+  --rule: #3a352d;
+  --rule-soft: #2d2924;
+  --code-bg: #2a2621;
+  --accent: #e8926a;
+  --accent-soft: #8f5d45;
+  color-scheme: dark;
+}
+:root[data-theme="dark"] svg [fill="#f3efe6"] { fill: #1e1b17; }
+:root[data-theme="dark"] svg [fill="#fbf9f4"] { fill: #26221d; }
+:root[data-theme="dark"] svg [fill="#f8f1e0"] { fill: #2a2418; }
+:root[data-theme="dark"] svg [fill="#d6cfc2"] { fill: #4a443a; }
+:root[data-theme="dark"] svg [fill="#bdb4a4"] { fill: #5a5346; }
+:root[data-theme="dark"] svg [fill="#ece7dc"] { fill: #2a2621; }
+:root[data-theme="dark"] svg [fill="#1f1d1a"] { fill: #ece6da; }
+:root[data-theme="dark"] svg [fill="#4a453e"] { fill: #cfc7b8; }
+:root[data-theme="dark"] svg [fill="#6e675c"] { fill: #9a917f; }
+:root[data-theme="dark"] svg [fill="#2f5a94"] { fill: #8db4ec; }
+:root[data-theme="dark"] svg [fill="#3b6aa8"] { fill: #7aa2f7; }
+:root[data-theme="dark"] svg [fill="#9a6c05"] { fill: #e3b341; }
+:root[data-theme="dark"] svg [fill="#b8502c"] { fill: #f0886a; }
+:root[data-theme="dark"] svg [fill="#a3401b"] { fill: #f7a08a; }
+:root[data-theme="dark"] svg [fill="#7a4bb8"] { fill: #bc8cff; }
+:root[data-theme="dark"] svg [fill="#2c7a3a"] { fill: #7ee787; }
+:root[data-theme="dark"] svg [stroke="#f3efe6"] { stroke: #1e1b17; }
+:root[data-theme="dark"] svg [stroke="#fbf9f4"] { stroke: #26221d; }
+:root[data-theme="dark"] svg [stroke="#f8f1e0"] { stroke: #2a2418; }
+:root[data-theme="dark"] svg [stroke="#d6cfc2"] { stroke: #4a443a; }
+:root[data-theme="dark"] svg [stroke="#bdb4a4"] { stroke: #5a5346; }
+:root[data-theme="dark"] svg [stroke="#ece7dc"] { stroke: #2a2621; }
+:root[data-theme="dark"] svg [stroke="#1f1d1a"] { stroke: #ece6da; }
+:root[data-theme="dark"] svg [stroke="#4a453e"] { stroke: #cfc7b8; }
+:root[data-theme="dark"] svg [stroke="#6e675c"] { stroke: #9a917f; }
+:root[data-theme="dark"] svg [stroke="#2f5a94"] { stroke: #8db4ec; }
+:root[data-theme="dark"] svg [stroke="#3b6aa8"] { stroke: #7aa2f7; }
+:root[data-theme="dark"] svg [stroke="#9a6c05"] { stroke: #e3b341; }
+:root[data-theme="dark"] svg [stroke="#b8502c"] { stroke: #f0886a; }
+:root[data-theme="dark"] svg [stroke="#a3401b"] { stroke: #f7a08a; }
+:root[data-theme="dark"] svg [stroke="#7a4bb8"] { stroke: #bc8cff; }
+:root[data-theme="dark"] svg [stroke="#2c7a3a"] { stroke: #7ee787; }
+
+.theme-toggle {
+  position: fixed;
+  top: 12px;
+  right: 14px;
+  z-index: 50;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.theme-toggle:hover {
+  color: var(--ink);
+  border-color: var(--accent-soft);
 }
