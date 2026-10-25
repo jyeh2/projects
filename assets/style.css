@@ -241,7 +241,9 @@ a.card {
   box-shadow: inset 0 0 0 1px var(--ink);
 }
 .card:hover h3,
-.card:hover h3 a {
+.card:hover h3 a,
+a.card:hover .card-body h3,
+a.card.pin:hover h3 {
   background: var(--hl);
   color: var(--hl-ink);
   text-decoration: underline;
