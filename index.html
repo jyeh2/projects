@@ -63,20 +63,20 @@
     </section>
 
 
-    <h2>Software and Systems Work</h2>
+    <h2>Software and Systems</h2>
 
     <div class="card-grid">
       <div class="card">
-        <img src="assets/cards/ml-surrogates.svg" alt="Schematic: a field-solver mesh with two coupled conductors feeding a PyTorch MLP that predicts in 0.5 microseconds within 0.14%">
+        <img src="assets/cards/hkn-portal.jpg" alt="HKN Member Portal screenshot">
         <div class="card-body">
-          <h3><a href="https://github.com/jyeh2/interconnect-cap-ml">ML Surrogates for Interconnect Parasitics</a></h3>
-          <p>A 2D finite-volume capacitance field solver in C++17 generates 4,292 labeled geometries, then a PyTorch MLP predicts line capacitance within 0.14% of the solver on held-out tests &mdash; replacing a ~1.8 s solve with a 0.5 &micro;s prediction &mdash; and holds under 1% just outside the training range, where an XGBoost baseline drifts past 20%.</p>
-          <p class="pin-links"><a href="https://github.com/jyeh2/interconnect-cap-ml">Source</a></p>
+          <h3><a href="https://portal.hknucsd.com">HKN Member Portal</a></h3>
+          <p>Member portal for UCSD's HKN chapter with about 2,300 monthly users. A Django REST Framework API serves a Svelte and Tailwind single-page app for events, induction, outreach hours and interview scheduling, with email through Amazon SES and Google Sheets sync. Pushes to master deploy to AWS EC2 through GitHub Actions.</p>
+          <p class="pin-links"><a href="https://portal.hknucsd.com">Live site</a> &middot; <a href="https://github.com/HKN-UCSD/hkn-portal">Source</a></p>
           <div class="tags">
-            <span class="tag">C++17</span>
-            <span class="tag">OpenMP</span>
-            <span class="tag">PyTorch</span>
-            <span class="tag">XGBoost</span>
+            <span class="tag">Django REST</span>
+            <span class="tag">Svelte</span>
+            <span class="tag">Tailwind</span>
+            <span class="tag">AWS</span>
           </div>
         </div>
       </div>
@@ -94,18 +94,22 @@
           </div>
         </div>
       </div>
+    </div>
 
+    <h2>AI / ML</h2>
+
+    <div class="card-grid">
       <div class="card">
-        <img src="assets/cards/hkn-portal.jpg" alt="HKN Member Portal screenshot">
+        <img src="assets/cards/ml-surrogates.svg" alt="Schematic: a field-solver mesh with two coupled conductors feeding a PyTorch MLP that predicts in 0.5 microseconds within 0.14%">
         <div class="card-body">
-          <h3><a href="https://portal.hknucsd.com">HKN Member Portal</a></h3>
-          <p>Member portal for UCSD's HKN chapter with about 2,300 monthly users. A Django REST Framework API serves a Svelte and Tailwind single-page app for events, induction, outreach hours and interview scheduling, with email through Amazon SES and Google Sheets sync. Pushes to master deploy to AWS EC2 through GitHub Actions.</p>
-          <p class="pin-links"><a href="https://portal.hknucsd.com">Live site</a> &middot; <a href="https://github.com/HKN-UCSD/hkn-portal">Source</a></p>
+          <h3><a href="https://github.com/jyeh2/interconnect-cap-ml">ML Surrogates for Interconnect Parasitics</a></h3>
+          <p>A 2D finite-volume capacitance field solver in C++17 generates 4,292 labeled geometries, then a PyTorch MLP predicts line capacitance within 0.14% of the solver on held-out tests &mdash; replacing a ~1.8 s solve with a 0.5 &micro;s prediction &mdash; and holds under 1% just outside the training range, where an XGBoost baseline drifts past 20%.</p>
+          <p class="pin-links"><a href="https://github.com/jyeh2/interconnect-cap-ml">Source</a></p>
           <div class="tags">
-            <span class="tag">Django REST</span>
-            <span class="tag">Svelte</span>
-            <span class="tag">Tailwind</span>
-            <span class="tag">AWS</span>
+            <span class="tag">C++17</span>
+            <span class="tag">OpenMP</span>
+            <span class="tag">PyTorch</span>
+            <span class="tag">XGBoost</span>
           </div>
         </div>
       </div>
@@ -162,9 +166,9 @@
       </div>
     </div>
 
-    <h2>Hardware and Firmware</h2>
+    <h2>GPU Repair Chronicles</h2>
 
-    <p>The X99 inference server and its write-ups have <a href="x99/">their own page</a>. Everything else hardware lives here.</p>
+    <p>Intel Arc cards I&rsquo;ve brought back or fixed up: SPI firmware dumps and reflashes, GSC firmware recovery, and a thermal pad swap.</p>
 
     <div class="card-grid">
       <a class="card post-card" href="posts/2026-06-arc-b580-bios-flashing.html">
