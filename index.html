@@ -29,10 +29,10 @@
         </div>
         <a class="card pin" href="#x99-build">
           <span class="num">$200 box</span>
-          <span class="what">two mining GPUs + a Tesla V100 on two NVIDIA drivers, pooled to run Qwen3 32B at 24 tok/s</span>
+          <span class="what">an unlocked mining GPU beside a Radeon VII on ROCm; swap in a Tesla V100 and it pools Qwen3 32B at 24 tok/s</span>
           <h3>The X99 Build</h3>
-          <p>One secondhand X99 board turned into a multi-GPU inference server: soldered PCIe lanes, a ReBAR BIOS mod, FP16 unlocked 55&times; on the mining cards, a V100 passed through to a VFIO guest, and the whole box rebuilt from one Ansible playbook.</p>
-          <div class="tags"><span class="tag">Linux</span><span class="tag">PCIe</span><span class="tag">VFIO</span><span class="tag">Ansible</span></div>
+          <p>One secondhand X99 board turned into a multi-GPU inference server: soldered PCIe lanes, a ReBAR BIOS mod, FP16 unlocked 55&times; on the mining cards, a Radeon VII on ROCm, a V100 passed through to a VFIO guest when it&rsquo;s installed, and the whole box rebuilt from one Ansible playbook.</p>
+          <div class="tags"><span class="tag">Linux</span><span class="tag">PCIe</span><span class="tag">ROCm</span><span class="tag">VFIO</span><span class="tag">Ansible</span></div>
         </a>
         <div class="card pin">
           <span class="num">1.8 s &rarr; 0.5 &micro;s</span>
@@ -120,15 +120,22 @@
 
     <section class="x99-build" id="x99-build">
       <h2>The X99 Build</h2>
-      <p>One secondhand Huananzhi X99-BD4 board has become a running theme: a roughly $200 inference server I keep extending. The projects below are chapters in the same machine &mdash; soldering its PCIe lanes, flashing its BIOS, waking it over the network, unlocking the mining GPUs, and finally running two NVIDIA cards on two different drivers at once, pooled for one model.</p>
+      <p>One secondhand Huananzhi X99-BD4 board has become a running theme: a roughly $200 inference server I keep extending. The projects below are chapters in the same machine &mdash; soldering its PCIe lanes, flashing its BIOS, waking it over the network, unlocking the mining GPUs, and running two NVIDIA cards on two different drivers at once, pooled for one model.</p>
+      <p>The second GPU slot now holds an AMD Radeon VII on ROCm, next to the unlocked CMP 40HX. The Tesla V100 goes back into that slot when I want the pooled VFIO setup, and the Radeon comes out.</p>
 
       <figure class="diagram">
-        <svg viewBox="0 0 760 470" role="img" aria-labelledby="x99diag-title x99diag-desc">
-          <title id="x99diag-title">The X99 inference box today</title>
-          <desc id="x99diag-desc">An Orange Pi Zero wakes the X99 host over Tailscale. The host runs the patched NVIDIA 610 open driver with the unlocked CMP 40HX on PCIe Gen2. A Tesla V100 is passed through with vfio-pci to a KVM/QEMU guest running the closed 580 driver. llama.cpp RPC pools both GPUs to serve Qwen3 32B at 24 tokens per second.</desc>
+        <svg viewBox="0 0 940 490" role="img" aria-labelledby="x99diag-title x99diag-desc">
+          <title id="x99diag-title">The X99 inference box</title>
+          <desc id="x99diag-desc">An Orange Pi Zero wakes the X99 host over Tailscale. The host runs the patched NVIDIA 610 open driver with the unlocked CMP 40HX on PCIe Gen2, and an AMD Radeon VII on amdgpu and ROCm 6.3.3, capped at 200 watts. The Radeon VII shares its slot with a Tesla V100: when the V100 is installed it is passed through with vfio-pci to a KVM/QEMU guest running the closed 580 driver, and llama.cpp RPC pools it with the CMP to serve Qwen3 32B at 24 tokens per second.</desc>
           <defs>
             <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
               <path d="M0,0 L10,5 L0,10 z" fill="#7aa2f7"/>
+            </marker>
+            <marker id="ah-amd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="#f78166"/>
+            </marker>
+            <marker id="ah-swap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="#9aa4b2"/>
             </marker>
           </defs>
 
@@ -143,45 +150,60 @@
           <text x="198" y="70" fill="#9dc1ff" font-size="9.5" font-family="ui-monospace, monospace">power on</text>
 
           <!-- host chassis -->
-          <rect x="20" y="88" width="720" height="368" rx="12" fill="#0e141c" stroke="#2a3647"/>
-          <text x="36" y="110" fill="#e6edf3" font-size="13" font-weight="600">Huananzhi X99-BD4 &mdash; Ubuntu, Linux 5.15</text>
-          <text x="36" y="126" fill="#9aa4b2" font-size="10.5" font-family="ui-monospace, monospace">host &middot; patched NVIDIA 610 open driver (cmpunlocker)</text>
+          <rect x="20" y="88" width="900" height="388" rx="12" fill="#0e141c" stroke="#2a3647"/>
+          <text x="36" y="110" fill="#e6edf3" font-size="13" font-weight="600">Huananzhi X99-BD4 &mdash; Ubuntu host</text>
+          <text x="36" y="126" fill="#9aa4b2" font-size="10.5" font-family="ui-monospace, monospace">host &middot; patched NVIDIA 610 open (cmpunlocker) + amdgpu</text>
 
           <!-- host-side GPU: CMP 40HX -->
-          <rect x="44" y="140" width="300" height="38" rx="7" fill="#111823" stroke="#1f2937"/>
-          <text x="194" y="164" text-anchor="middle" fill="#9dc1ff" font-size="11.5" font-family="ui-monospace, monospace">NVIDIA 610 open &middot; patched</text>
-          <line x1="194" y1="178" x2="194" y2="204" stroke="#7aa2f7" stroke-width="1.5" marker-end="url(#ah)"/>
-          <rect x="48" y="206" width="292" height="104" rx="9" fill="#111823" stroke="#7aa2f7"/>
-          <text x="194" y="230" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="600">CMP 40HX &mdash; TU106</text>
-          <text x="194" y="252" text-anchor="middle" fill="#b7c0cc" font-size="11">FP16 unlocked &middot; 54 TFLOPS</text>
-          <text x="194" y="272" text-anchor="middle" fill="#b7c0cc" font-size="11">PCIe Gen2 x16 (5 GT/s)</text>
-          <text x="194" y="292" text-anchor="middle" fill="#b7c0cc" font-size="11">BAR1 8 GiB &middot; ReBAR</text>
+          <rect x="36" y="140" width="240" height="38" rx="7" fill="#111823" stroke="#1f2937"/>
+          <text x="156" y="164" text-anchor="middle" fill="#9dc1ff" font-size="11.5" font-family="ui-monospace, monospace">NVIDIA 610 open &middot; patched</text>
+          <line x1="156" y1="178" x2="156" y2="204" stroke="#7aa2f7" stroke-width="1.5" marker-end="url(#ah)"/>
+          <rect x="40" y="206" width="232" height="104" rx="9" fill="#111823" stroke="#7aa2f7"/>
+          <text x="156" y="230" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="600">CMP 40HX &mdash; TU106</text>
+          <text x="156" y="252" text-anchor="middle" fill="#b7c0cc" font-size="11">FP16 unlocked &middot; 54 TFLOPS</text>
+          <text x="156" y="272" text-anchor="middle" fill="#b7c0cc" font-size="11">PCIe Gen2 x16 (5 GT/s)</text>
+          <text x="156" y="292" text-anchor="middle" fill="#b7c0cc" font-size="11">BAR1 8 GiB &middot; ReBAR</text>
+
+          <!-- host-side GPU: Radeon VII -->
+          <rect x="300" y="140" width="240" height="38" rx="7" fill="#111823" stroke="#1f2937"/>
+          <text x="420" y="164" text-anchor="middle" fill="#ffa198" font-size="11.5" font-family="ui-monospace, monospace">amdgpu &middot; ROCm 6.3.3</text>
+          <line x1="420" y1="178" x2="420" y2="204" stroke="#f78166" stroke-width="1.5" marker-end="url(#ah-amd)"/>
+          <rect x="304" y="206" width="232" height="104" rx="9" fill="#111823" stroke="#f78166"/>
+          <text x="420" y="230" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="600">Radeon VII &mdash; Vega 20</text>
+          <text x="420" y="252" text-anchor="middle" fill="#b7c0cc" font-size="11">16 GB HBM2 &middot; gfx906</text>
+          <text x="420" y="272" text-anchor="middle" fill="#b7c0cc" font-size="11">PCIe 3.0 x16 (8 GT/s)</text>
+          <text x="420" y="292" text-anchor="middle" fill="#b7c0cc" font-size="11">capped at 200 W</text>
+
+          <!-- Radeon VII and V100 share a slot -->
+          <line x1="542" y1="258" x2="616" y2="258" stroke="#9aa4b2" stroke-width="1.3" stroke-dasharray="3 3" marker-start="url(#ah-swap)" marker-end="url(#ah-swap)"/>
+          <text x="579" y="250" text-anchor="middle" fill="#9aa4b2" font-size="9.5" font-family="ui-monospace, monospace">swap</text>
+          <text x="579" y="274" text-anchor="middle" fill="#9aa4b2" font-size="9.5" font-family="ui-monospace, monospace">slot</text>
 
           <!-- VFIO guest -->
-          <rect x="408" y="138" width="314" height="196" rx="10" fill="#141414" stroke="#e3b341" stroke-dasharray="6 4"/>
-          <text x="424" y="158" fill="#e3b341" font-size="12" font-weight="600">VFIO guest</text>
-          <text x="424" y="173" fill="#9aa4b2" font-size="10.5" font-family="ui-monospace, monospace">KVM/QEMU &middot; OVMF &middot; libvirt</text>
-          <rect x="430" y="182" width="272" height="36" rx="7" fill="#111823" stroke="#1f2937"/>
-          <text x="566" y="205" text-anchor="middle" fill="#9dc1ff" font-size="11.5" font-family="ui-monospace, monospace">NVIDIA 580 closed</text>
-          <line x1="566" y1="218" x2="566" y2="242" stroke="#7aa2f7" stroke-width="1.5" marker-end="url(#ah)"/>
-          <rect x="434" y="244" width="266" height="80" rx="9" fill="#111823" stroke="#e3b341"/>
-          <text x="567" y="268" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="600">Tesla V100 &mdash; GV100</text>
-          <text x="567" y="289" text-anchor="middle" fill="#b7c0cc" font-size="11">16 GB HBM2</text>
-          <text x="567" y="308" text-anchor="middle" fill="#9dc1ff" font-size="10.5" font-family="ui-monospace, monospace">vfio-pci passthrough</text>
+          <rect x="620" y="138" width="284" height="196" rx="10" fill="#141414" stroke="#e3b341" stroke-dasharray="6 4"/>
+          <text x="636" y="158" fill="#e3b341" font-size="12" font-weight="600">VFIO guest (when the V100 is in)</text>
+          <text x="636" y="173" fill="#9aa4b2" font-size="10.5" font-family="ui-monospace, monospace">KVM/QEMU &middot; OVMF &middot; libvirt</text>
+          <rect x="640" y="182" width="244" height="36" rx="7" fill="#111823" stroke="#1f2937"/>
+          <text x="762" y="205" text-anchor="middle" fill="#9dc1ff" font-size="11.5" font-family="ui-monospace, monospace">NVIDIA 580 closed</text>
+          <line x1="762" y1="218" x2="762" y2="242" stroke="#7aa2f7" stroke-width="1.5" marker-end="url(#ah)"/>
+          <rect x="644" y="244" width="236" height="80" rx="9" fill="#111823" stroke="#e3b341"/>
+          <text x="762" y="268" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="600">Tesla V100 &mdash; GV100</text>
+          <text x="762" y="289" text-anchor="middle" fill="#b7c0cc" font-size="11">16 GB HBM2</text>
+          <text x="762" y="308" text-anchor="middle" fill="#9dc1ff" font-size="10.5" font-family="ui-monospace, monospace">vfio-pci passthrough</text>
 
           <!-- llama.cpp RPC pooling layer -->
-          <rect x="250" y="372" width="260" height="46" rx="9" fill="#111823" stroke="#bc8cff"/>
-          <text x="380" y="392" text-anchor="middle" fill="#e6edf3" font-size="12.5" font-weight="600">llama.cpp RPC</text>
-          <text x="380" y="408" text-anchor="middle" fill="#b7c0cc" font-size="10.5">pools host + guest GPU</text>
-          <!-- arrows GPUs -> RPC -->
-          <path d="M194,310 L194,350 L300,350 L300,370" fill="none" stroke="#7aa2f7" stroke-width="1.5" marker-end="url(#ah)"/>
-          <path d="M567,324 L567,350 L460,350 L460,370" fill="none" stroke="#7aa2f7" stroke-width="1.5" marker-end="url(#ah)"/>
+          <rect x="330" y="384" width="260" height="46" rx="9" fill="#111823" stroke="#bc8cff"/>
+          <text x="460" y="404" text-anchor="middle" fill="#e6edf3" font-size="12.5" font-weight="600">llama.cpp RPC</text>
+          <text x="460" y="420" text-anchor="middle" fill="#b7c0cc" font-size="10.5">pools the CMP + guest V100</text>
+          <path d="M156,310 L156,358 L380,358 L380,382" fill="none" stroke="#7aa2f7" stroke-width="1.5" marker-end="url(#ah)"/>
+          <path d="M762,324 L762,358 L540,358 L540,382" fill="none" stroke="#7aa2f7" stroke-width="1.5" marker-end="url(#ah)"/>
           <!-- output -->
-          <line x1="510" y1="395" x2="548" y2="395" stroke="#7aa2f7" stroke-width="1.6" marker-end="url(#ah)"/>
-          <rect x="550" y="376" width="170" height="38" rx="19" fill="#0e141c" stroke="#7ee787"/>
-          <text x="635" y="400" text-anchor="middle" fill="#7ee787" font-size="12" font-weight="600">Qwen3 32B &middot; 24 tok/s</text>
+          <line x1="590" y1="407" x2="628" y2="407" stroke="#7aa2f7" stroke-width="1.6" marker-end="url(#ah)"/>
+          <rect x="630" y="388" width="200" height="38" rx="19" fill="#0e141c" stroke="#7ee787"/>
+          <text x="730" y="412" text-anchor="middle" fill="#7ee787" font-size="12" font-weight="600">Qwen3 32B &middot; 24 tok/s</text>
+          <text x="730" y="444" text-anchor="middle" fill="#9aa4b2" font-size="9.5" font-family="ui-monospace, monospace">with the V100 &middot; Ubuntu 22.04 / Linux 5.15</text>
         </svg>
-        <figcaption>The box today: the host runs the patched 610 driver with the unlocked CMP 40HX, while a Tesla V100 lives in a VFIO guest on the closed 580 driver. llama.cpp pools both over RPC to serve Qwen3 32B. An Orange Pi Zero wakes the whole thing over Tailscale.</figcaption>
+        <figcaption>The host runs the unlocked CMP 40HX on the patched 610 driver and a Radeon VII on ROCm, capped at 200 W. The Radeon VII and the Tesla V100 share a slot: with the V100 in, it lives in a VFIO guest on the closed 580 driver, and llama.cpp pools it with the CMP over RPC to serve Qwen3 32B. An Orange Pi Zero wakes the whole thing over Tailscale.</figcaption>
       </figure>
 
       <p class="meta"><strong>Hosting the V100 on a VM &mdash; key terms:</strong></p>
