@@ -196,7 +196,7 @@
         </a>
 
         <a class="card post-card" href="../posts/2026-10-v100-vfio-rpc.html">
-          <img src="../assets/cards/v100-cmp-rpc.svg" alt="Schematic: CMP 40HX on the host and a Tesla V100 in a VFIO guest, both feeding a llama.cpp RPC node that outputs 24 tok/s">
+          <img src="../assets/cards/v100-passthrough.jpg" alt="Tesla V100 on a PCIe adapter with a blower shroud, power cables connected, installed in the X99 machine">
           <div class="card-body">
             <h3>V100 + CMP 40HX: Two Drivers, One Box</h3>
             <p>A Tesla V100 passed through to a KVM guest with vfio-pci so it can run the closed 580 driver, while the host keeps the patched 610 for the CMP. llama.cpp RPC pools both GPUs to serve Qwen3 32B at 24 tok/s.</p>
