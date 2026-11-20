@@ -56,7 +56,7 @@
     <figure class="diagram">
       <svg viewBox="0 0 940 440" role="img" aria-labelledby="pvediag-title pvediag-desc">
         <title id="pvediag-title">kabangy on Proxmox</title>
-        <desc id="pvediag-desc">A Proxmox VE 9.2 host runs the stock amdgpu driver for the Radeon VII and the patched NVIDIA 610 open driver for the CMP 40HX. Containers 101 and 103 share the Radeon VII. Container 102 owns the CMP 40HX and runs ggml-rpc-server, which container 101 reaches over a private bridge to pool both cards. All three containers mount the models read-only from the SanDisk SATA SSD. Ubuntu stays untouched on the NVMe as a fallback.</desc>
+        <desc id="pvediag-desc">A Proxmox VE 9.2 host runs the stock amdgpu driver for the Radeon VII and the patched NVIDIA 610 open driver for the CMP 40HX. Containers 101 and 103 share the Radeon VII. Container 102 owns the CMP 40HX and runs ggml-rpc-server, which container 101 reaches over a private bridge to pool both cards. Proxmox runs from the SanDisk SATA SSD. The Intel NVMe holds the models and is mounted read-only into all three containers; Ubuntu stays untouched on it as a fallback.</desc>
         <defs>
           <marker id="pah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path d="M0,0 L10,5 L0,10 z" fill="#3b6aa8"/>
@@ -116,15 +116,15 @@
         <text x="775" y="320" text-anchor="middle" fill="#333333" font-size="11">Gen2 x16 &middot; BAR1 8 GiB &middot; FP16 unlocked</text>
 
         <!-- storage -->
-        <rect x="40" y="366" width="400" height="44" rx="9" fill="#ffffff" stroke="#2c7a3a"/>
-        <text x="240" y="386" text-anchor="middle" fill="#2c7a3a" font-size="12" font-weight="600">SanDisk SATA SSD</text>
-        <text x="240" y="402" text-anchor="middle" fill="#333333" font-size="10.5" font-family="ui-monospace, monospace">Proxmox root &middot; /srv/models &rarr; /models (ro)</text>
+        <rect x="40" y="366" width="400" height="44" rx="9" fill="#ffffff" stroke="#cccccc"/>
+        <text x="240" y="386" text-anchor="middle" fill="#111111" font-size="12" font-weight="600">SanDisk SATA SSD</text>
+        <text x="240" y="402" text-anchor="middle" fill="#333333" font-size="10.5" font-family="ui-monospace, monospace">Proxmox root</text>
 
-        <rect x="500" y="366" width="400" height="44" rx="9" fill="#ffffff" stroke="#cccccc" stroke-dasharray="6 4"/>
-        <text x="700" y="386" text-anchor="middle" fill="#666666" font-size="12" font-weight="600">Intel 660p NVMe</text>
-        <text x="700" y="402" text-anchor="middle" fill="#666666" font-size="10.5" font-family="ui-monospace, monospace">Ubuntu, untouched, as a fallback</text>
+        <rect x="500" y="366" width="400" height="44" rx="9" fill="#ffffff" stroke="#2c7a3a"/>
+        <text x="700" y="386" text-anchor="middle" fill="#2c7a3a" font-size="12" font-weight="600">Intel 660p NVMe</text>
+        <text x="700" y="402" text-anchor="middle" fill="#333333" font-size="10.5" font-family="ui-monospace, monospace">models &rarr; /models (ro) &middot; Ubuntu fallback</text>
       </svg>
-      <figcaption>Containers 101 and 103 share the Radeon VII through the host's amdgpu driver. Container 102 owns the CMP 40HX, and 101 reaches it over RPC when I pool both cards. All three containers mount the models read-only from the SanDisk.</figcaption>
+      <figcaption>Containers 101 and 103 share the Radeon VII through the host's amdgpu driver. Container 102 owns the CMP 40HX, and 101 reaches it over RPC when I pool both cards. All three containers mount the models read-only from the NVMe.</figcaption>
     </figure>
 
     <p>
@@ -182,7 +182,7 @@
     <h3>Load times and storage</h3>
 
     <p>
-      Proxmox lives on an older SanDisk Ultra II SATA SSD, and I kept the NVMe untouched with Ubuntu on it. I timed a cold read of the
+      Proxmox lives on an older SanDisk Ultra II SATA SSD, and I kept Ubuntu untouched on the NVMe. I timed a cold read of the
       32B file (19.76 GB) with <code>time cat</code> after dropping the page cache:
     </p>
 
@@ -194,9 +194,10 @@
     </table></div>
 
     <p>
-      The containers read models from the SanDisk copy, so a cold load takes about 18 s longer than it did on Ubuntu. Generation speed
-      doesn't change, because the weights live in VRAM once they load. I tested the NVMe as a read-only mount from Proxmox and then
-      switched it back off, so the Ubuntu install stays a clean fallback:
+      Reading from the SanDisk would add about 18 s to every cold load, so the models stay on the NVMe. I mount it read-only on the
+      Proxmox host and pass it into all three containers as <code>/models</code>. Cold loads stay at Ubuntu speed, and the read-only
+      mount keeps the Ubuntu install a clean fallback. Generation speed doesn't depend on the drive, because the weights live in VRAM
+      once they load:
     </p>
 
     <a href="#img5"><img src="../assets/kabangy-proxmox/nvme-read.png" alt="time cat of the Qwen3 32B file from the read-only NVMe mount taking 17.0 seconds"></a>

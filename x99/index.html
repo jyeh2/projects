@@ -16,7 +16,7 @@
     <p class="kicker">Hardware project &middot; August 2026 &ndash; ongoing</p>
     <h1>The X99 Build</h1>
     <p>One secondhand Huananzhi X99-BD4 board turned into an inference server that I keep extending: soldering its PCIe lanes, flashing its BIOS, waking it over the network, unlocking the mining GPUs, and pooling two GPUs from two vendors to serve one model.</p>
-    <p>It now runs <a href="../posts/2026-11-kabangy-proxmox.html">Proxmox VE 9.2</a> with one LXC container per GPU: the unlocked CMP 40HX on my patched NVIDIA driver and an AMD Radeon VII on ROCm, with the host keeping both drivers. llama.cpp RPC pools the two cards across containers to serve Qwen3 32B. Ubuntu stays on the NVMe as a fallback.</p>
+    <p>It now runs <a href="../posts/2026-11-kabangy-proxmox.html">Proxmox VE 9.2</a> with one LXC container per GPU: the unlocked CMP 40HX on my patched NVIDIA driver and an AMD Radeon VII on ROCm, with the host keeping both drivers. llama.cpp RPC pools the two cards across containers to serve Qwen3 32B. The models load from the Intel NVMe, mounted read-only, and Ubuntu stays on it as a fallback.</p>
 
     <div class="highlights">
       <a class="stat" href="../posts/2026-08-200-bucks-inference-machine.html"><span class="num">46%</span><span class="what">faster model loads after soldering the missing PCIe capacitors</span></a>
@@ -33,7 +33,7 @@
       <figure class="diagram">
       <svg viewBox="0 0 940 440" role="img" aria-labelledby="pvediag-title pvediag-desc">
         <title id="pvediag-title">kabangy on Proxmox</title>
-        <desc id="pvediag-desc">A Proxmox VE 9.2 host runs the stock amdgpu driver for the Radeon VII and the patched NVIDIA 610 open driver for the CMP 40HX. Containers 101 and 103 share the Radeon VII. Container 102 owns the CMP 40HX and runs ggml-rpc-server, which container 101 reaches over a private bridge to pool both cards. All three containers mount the models read-only from the SanDisk SATA SSD. Ubuntu stays untouched on the NVMe as a fallback.</desc>
+        <desc id="pvediag-desc">A Proxmox VE 9.2 host runs the stock amdgpu driver for the Radeon VII and the patched NVIDIA 610 open driver for the CMP 40HX. Containers 101 and 103 share the Radeon VII. Container 102 owns the CMP 40HX and runs ggml-rpc-server, which container 101 reaches over a private bridge to pool both cards. Proxmox runs from the SanDisk SATA SSD. The Intel NVMe holds the models and is mounted read-only into all three containers; Ubuntu stays untouched on it as a fallback.</desc>
         <defs>
           <marker id="pah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path d="M0,0 L10,5 L0,10 z" fill="#3b6aa8"/>
@@ -93,15 +93,15 @@
         <text x="775" y="320" text-anchor="middle" fill="#333333" font-size="11">Gen2 x16 &middot; BAR1 8 GiB &middot; FP16 unlocked</text>
 
         <!-- storage -->
-        <rect x="40" y="366" width="400" height="44" rx="9" fill="#ffffff" stroke="#2c7a3a"/>
-        <text x="240" y="386" text-anchor="middle" fill="#2c7a3a" font-size="12" font-weight="600">SanDisk SATA SSD</text>
-        <text x="240" y="402" text-anchor="middle" fill="#333333" font-size="10.5" font-family="ui-monospace, monospace">Proxmox root &middot; /srv/models &rarr; /models (ro)</text>
+        <rect x="40" y="366" width="400" height="44" rx="9" fill="#ffffff" stroke="#cccccc"/>
+        <text x="240" y="386" text-anchor="middle" fill="#111111" font-size="12" font-weight="600">SanDisk SATA SSD</text>
+        <text x="240" y="402" text-anchor="middle" fill="#333333" font-size="10.5" font-family="ui-monospace, monospace">Proxmox root</text>
 
-        <rect x="500" y="366" width="400" height="44" rx="9" fill="#ffffff" stroke="#cccccc" stroke-dasharray="6 4"/>
-        <text x="700" y="386" text-anchor="middle" fill="#666666" font-size="12" font-weight="600">Intel 660p NVMe</text>
-        <text x="700" y="402" text-anchor="middle" fill="#666666" font-size="10.5" font-family="ui-monospace, monospace">Ubuntu, untouched, as a fallback</text>
+        <rect x="500" y="366" width="400" height="44" rx="9" fill="#ffffff" stroke="#2c7a3a"/>
+        <text x="700" y="386" text-anchor="middle" fill="#2c7a3a" font-size="12" font-weight="600">Intel 660p NVMe</text>
+        <text x="700" y="402" text-anchor="middle" fill="#333333" font-size="10.5" font-family="ui-monospace, monospace">models &rarr; /models (ro) &middot; Ubuntu fallback</text>
       </svg>
-      <figcaption>The current layout, on Proxmox VE 9.2. Containers 101 and 103 share the Radeon VII through the host's amdgpu driver. Container 102 owns the CMP 40HX, and 101 reaches it over RPC when I pool both cards. All three containers mount the models read-only from the SanDisk. An Orange Pi Zero still wakes the box over Tailscale.</figcaption>
+      <figcaption>The current layout, on Proxmox VE 9.2. Containers 101 and 103 share the Radeon VII through the host's amdgpu driver. Container 102 owns the CMP 40HX, and 101 reaches it over RPC when I pool both cards. All three containers mount the models read-only from the NVMe. An Orange Pi Zero still wakes the box over Tailscale.</figcaption>
     </figure>
 
     <h2 id="log">Build log</h2>
@@ -240,7 +240,7 @@
         <tr><th>Part</th><th>What&rsquo;s in it</th></tr>
         <tr><td>Board</td><td>Huananzhi X99-BD4, AMI Aptio V 5.11 BIOS with <a href="../posts/2026-10-x99-rebar-flashing.html">ReBarDxe inserted</a></td></tr>
         <tr><td>CPU</td><td>Intel Xeon E5-2678 v3 (Haswell-EP, 12 cores)</td></tr>
-        <tr><td>OS</td><td>Proxmox VE 9.2 on a SATA SSD, kernel 7.0.14-30-pve (pinned); Ubuntu 24.04 kept on the NVMe as a fallback</td></tr>
+        <tr><td>OS</td><td>Proxmox VE 9.2 on a SATA SSD, kernel 7.0.14-30-pve (pinned); models on the Intel 660p NVMe, mounted read-only, with Ubuntu 24.04 kept on it as a fallback</td></tr>
         <tr><td>Network</td><td>Wi-Fi + Tailscale; powered on by an <a href="../posts/2026-09-wake-on-lan-retrofit.html">Orange Pi Zero relay</a></td></tr>
       </table>
     </div>
