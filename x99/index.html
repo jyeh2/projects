@@ -15,13 +15,13 @@
 
     <p class="kicker">Hardware project &middot; August 2026 &ndash; ongoing</p>
     <h1>The X99 Build</h1>
-    <p>One secondhand Huananzhi X99-BD4 board turned into a roughly $200 inference server that I keep extending: soldering its PCIe lanes, flashing its BIOS, waking it over the network, unlocking the mining GPUs, and running two NVIDIA cards on two different drivers at once, pooled for one model.</p>
-    <p>The second GPU slot now holds an AMD Radeon VII on ROCm, next to the unlocked CMP 40HX. The Tesla V100 goes back into that slot when I want the pooled VFIO setup, and the Radeon comes out.</p>
+    <p>One secondhand Huananzhi X99-BD4 board turned into an inference server that I keep extending: soldering its PCIe lanes, flashing its BIOS, waking it over the network, unlocking the mining GPUs, and pooling two GPUs from two vendors to serve one model.</p>
+    <p>It now runs <a href="../posts/2026-11-kabangy-proxmox.html">Proxmox VE 9.2</a> with one LXC container per GPU: the unlocked CMP 40HX on my patched NVIDIA driver and an AMD Radeon VII on ROCm, with the host keeping both drivers. llama.cpp RPC pools the two cards across containers to serve Qwen3 32B. Ubuntu stays on the NVMe as a fallback.</p>
 
     <div class="highlights">
-      <a class="stat" href="../posts/2026-08-200-bucks-inference-machine.html"><span class="num">~$200</span><span class="what">secondhand board, CPU and mining GPUs</span></a>
+      <a class="stat" href="../posts/2026-08-200-bucks-inference-machine.html"><span class="num">46%</span><span class="what">faster model loads after soldering the missing PCIe capacitors</span></a>
       <a class="stat" href="../posts/2026-10-cmp40hx-unlock.html"><span class="num">0.98 &rarr; 54</span><span class="what">FP16 TFLOPS on the CMP 40HX after the unlock</span></a>
-      <a class="stat" href="../posts/2026-10-v100-vfio-rpc.html"><span class="num">24 tok/s</span><span class="what">Qwen3 32B pooled across the CMP and V100</span></a>
+      <a class="stat" href="../posts/2026-11-kabangy-proxmox.html"><span class="num">20 tok/s</span><span class="what">Qwen3 32B pooled across the CMP and Radeon VII, in separate containers</span></a>
       <a class="stat" href="../posts/2026-09-kvsnap-kv-cache-reuse.html"><span class="num">54 s &rarr; 0.27 s</span><span class="what">Gemma 4 time to first token with KV snapshots</span></a>
     </div>
 
@@ -31,87 +31,78 @@
 
     <h2 id="setup">Current setup</h2>
       <figure class="diagram">
-        <svg viewBox="0 0 940 490" role="img" aria-labelledby="x99diag-title x99diag-desc">
-          <title id="x99diag-title">The X99 inference box</title>
-          <desc id="x99diag-desc">An Orange Pi Zero wakes the X99 host over Tailscale. The host runs the patched NVIDIA 610 open driver with the unlocked CMP 40HX on PCIe Gen2, and an AMD Radeon VII on amdgpu and ROCm 6.3.3, capped at 200 watts. The Radeon VII shares its slot with a Tesla V100: when the V100 is installed it is passed through with vfio-pci to a KVM/QEMU guest running the closed 580 driver, and llama.cpp RPC pools it with the CMP to serve Qwen3 32B at 24 tokens per second.</desc>
-          <defs>
-            <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M0,0 L10,5 L0,10 z" fill="#3b6aa8"/>
-            </marker>
-            <marker id="ah-amd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M0,0 L10,5 L0,10 z" fill="#b8502c"/>
-            </marker>
-            <marker id="ah-swap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-              <path d="M0,0 L10,5 L0,10 z" fill="#666666"/>
-            </marker>
-          </defs>
+      <svg viewBox="0 0 940 440" role="img" aria-labelledby="pvediag-title pvediag-desc">
+        <title id="pvediag-title">kabangy on Proxmox</title>
+        <desc id="pvediag-desc">A Proxmox VE 9.2 host runs the stock amdgpu driver for the Radeon VII and the patched NVIDIA 610 open driver for the CMP 40HX. Containers 101 and 103 share the Radeon VII. Container 102 owns the CMP 40HX and runs ggml-rpc-server, which container 101 reaches over a private bridge to pool both cards. All three containers mount the models read-only from the SanDisk SATA SSD. Ubuntu stays untouched on the NVMe as a fallback.</desc>
+        <defs>
+          <marker id="pah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#3b6aa8"/>
+          </marker>
+          <marker id="pah-amd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#b8502c"/>
+          </marker>
+          <marker id="pah-rpc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#7a4bb8"/>
+          </marker>
+        </defs>
 
-          <!-- top: wake path over Tailscale -->
-          <rect x="150" y="12" width="250" height="34" rx="7" fill="#ffffff" stroke="#cccccc"/>
-          <text x="275" y="33" text-anchor="middle" fill="#111111" font-size="12.5">Orange Pi Zero &mdash; WoL listener + relay</text>
-          <rect x="470" y="12" width="110" height="34" rx="7" fill="#ffffff" stroke="#cccccc"/>
-          <text x="525" y="33" text-anchor="middle" fill="#111111" font-size="12.5">laptop</text>
-          <line x1="400" y1="29" x2="468" y2="29" stroke="#666666" stroke-width="1.3" stroke-dasharray="4 3"/>
-          <text x="434" y="22" text-anchor="middle" fill="#666666" font-size="9.5" font-family="ui-monospace, monospace">Tailscale</text>
-          <line x1="190" y1="46" x2="190" y2="86" stroke="#3b6aa8" stroke-width="1.6" marker-end="url(#ah)"/>
-          <text x="198" y="70" fill="#2f5a94" font-size="9.5" font-family="ui-monospace, monospace">power on</text>
+        <rect x="20" y="12" width="900" height="416" rx="12" fill="#f4f4f4" stroke="#999999"/>
+        <text x="36" y="34" fill="#111111" font-size="13" font-weight="600">kabangy-pve &middot; Proxmox VE 9.2</text>
+        <text x="36" y="50" fill="#666666" font-size="10.5" font-family="ui-monospace, monospace">kernel 7.0.14-30-pve (pinned) &middot; vmbr1 10.10.10.0/24</text>
 
-          <!-- host chassis -->
-          <rect x="20" y="88" width="900" height="388" rx="12" fill="#f4f4f4" stroke="#999999"/>
-          <text x="36" y="110" fill="#111111" font-size="13" font-weight="600">Huananzhi X99-BD4 &mdash; Ubuntu host</text>
-          <text x="36" y="126" fill="#666666" font-size="10.5" font-family="ui-monospace, monospace">host &middot; patched NVIDIA 610 open (cmpunlocker) + amdgpu</text>
+        <!-- containers -->
+        <rect x="40" y="66" width="250" height="92" rx="9" fill="#ffffff" stroke="#b8502c"/>
+        <text x="165" y="88" text-anchor="middle" fill="#111111" font-size="13" font-weight="600">101 llm-radeon</text>
+        <text x="165" y="108" text-anchor="middle" fill="#333333" font-size="11">llama.cpp HIP &middot; RPC client</text>
+        <text x="165" y="128" text-anchor="middle" fill="#666666" font-size="10.5" font-family="ui-monospace, monospace">10.10.10.11</text>
+        <text x="165" y="146" text-anchor="middle" fill="#666666" font-size="10.5" font-family="ui-monospace, monospace">/dev/kfd + render node</text>
 
-          <!-- host-side GPU: CMP 40HX -->
-          <rect x="36" y="140" width="240" height="38" rx="7" fill="#ffffff" stroke="#cccccc"/>
-          <text x="156" y="164" text-anchor="middle" fill="#2f5a94" font-size="11.5" font-family="ui-monospace, monospace">NVIDIA 610 open &middot; patched</text>
-          <line x1="156" y1="178" x2="156" y2="204" stroke="#3b6aa8" stroke-width="1.5" marker-end="url(#ah)"/>
-          <rect x="40" y="206" width="232" height="104" rx="9" fill="#ffffff" stroke="#3b6aa8"/>
-          <text x="156" y="230" text-anchor="middle" fill="#111111" font-size="13" font-weight="600">CMP 40HX &mdash; TU106</text>
-          <text x="156" y="252" text-anchor="middle" fill="#333333" font-size="11">FP16 unlocked &middot; 54 TFLOPS</text>
-          <text x="156" y="272" text-anchor="middle" fill="#333333" font-size="11">PCIe Gen2 x16 (5 GT/s)</text>
-          <text x="156" y="292" text-anchor="middle" fill="#333333" font-size="11">BAR1 8 GiB &middot; ReBAR</text>
+        <rect x="345" y="66" width="250" height="92" rx="9" fill="#ffffff" stroke="#b8502c"/>
+        <text x="470" y="88" text-anchor="middle" fill="#111111" font-size="13" font-weight="600">103 jobs</text>
+        <text x="470" y="108" text-anchor="middle" fill="#333333" font-size="11">dev box &middot; ROCm 6.3.3</text>
+        <text x="470" y="128" text-anchor="middle" fill="#666666" font-size="10.5" font-family="ui-monospace, monospace">10.10.10.13</text>
+        <text x="470" y="146" text-anchor="middle" fill="#666666" font-size="10.5" font-family="ui-monospace, monospace">shares the Radeon</text>
 
-          <!-- host-side GPU: Radeon VII -->
-          <rect x="300" y="140" width="240" height="38" rx="7" fill="#ffffff" stroke="#cccccc"/>
-          <text x="420" y="164" text-anchor="middle" fill="#a3401b" font-size="11.5" font-family="ui-monospace, monospace">amdgpu &middot; ROCm 6.3.3</text>
-          <line x1="420" y1="178" x2="420" y2="204" stroke="#b8502c" stroke-width="1.5" marker-end="url(#ah-amd)"/>
-          <rect x="304" y="206" width="232" height="104" rx="9" fill="#ffffff" stroke="#b8502c"/>
-          <text x="420" y="230" text-anchor="middle" fill="#111111" font-size="13" font-weight="600">Radeon VII &mdash; Vega 20</text>
-          <text x="420" y="252" text-anchor="middle" fill="#333333" font-size="11">16 GB HBM2 &middot; gfx906</text>
-          <text x="420" y="272" text-anchor="middle" fill="#333333" font-size="11">PCIe 3.0 x16 (8 GT/s)</text>
-          <text x="420" y="292" text-anchor="middle" fill="#333333" font-size="11">capped at 200 W</text>
+        <rect x="650" y="66" width="250" height="92" rx="9" fill="#ffffff" stroke="#3b6aa8"/>
+        <text x="775" y="88" text-anchor="middle" fill="#111111" font-size="13" font-weight="600">102 llm-cmp</text>
+        <text x="775" y="108" text-anchor="middle" fill="#333333" font-size="11">llama.cpp CUDA &middot; ggml-rpc-server</text>
+        <text x="775" y="128" text-anchor="middle" fill="#666666" font-size="10.5" font-family="ui-monospace, monospace">10.10.10.12:50052</text>
+        <text x="775" y="146" text-anchor="middle" fill="#666666" font-size="10.5" font-family="ui-monospace, monospace">/dev/nvidia* &middot; nftables</text>
 
-          <!-- Radeon VII and V100 share a slot -->
-          <line x1="542" y1="258" x2="616" y2="258" stroke="#666666" stroke-width="1.3" stroke-dasharray="3 3" marker-start="url(#ah-swap)" marker-end="url(#ah-swap)"/>
-          <text x="579" y="250" text-anchor="middle" fill="#666666" font-size="9.5" font-family="ui-monospace, monospace">swap</text>
-          <text x="579" y="274" text-anchor="middle" fill="#666666" font-size="9.5" font-family="ui-monospace, monospace">slot</text>
+        <!-- RPC link -->
+        <path d="M165,158 L165,180 L775,180 L775,160" fill="none" stroke="#7a4bb8" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#pah-rpc)"/>
+        <text x="470" y="196" text-anchor="middle" fill="#7a4bb8" font-size="10.5" font-family="ui-monospace, monospace">llama.cpp RPC &middot; pooled Qwen3 32B</text>
 
-          <!-- VFIO guest -->
-          <rect x="620" y="138" width="284" height="196" rx="10" fill="#fff8e1" stroke="#9a6c05" stroke-dasharray="6 4"/>
-          <text x="636" y="158" fill="#9a6c05" font-size="12" font-weight="600">VFIO guest (when the V100 is in)</text>
-          <text x="636" y="173" fill="#666666" font-size="10.5" font-family="ui-monospace, monospace">KVM/QEMU &middot; OVMF &middot; libvirt</text>
-          <rect x="640" y="182" width="244" height="36" rx="7" fill="#ffffff" stroke="#cccccc"/>
-          <text x="762" y="205" text-anchor="middle" fill="#2f5a94" font-size="11.5" font-family="ui-monospace, monospace">NVIDIA 580 closed</text>
-          <line x1="762" y1="218" x2="762" y2="242" stroke="#3b6aa8" stroke-width="1.5" marker-end="url(#ah)"/>
-          <rect x="644" y="244" width="236" height="80" rx="9" fill="#ffffff" stroke="#9a6c05"/>
-          <text x="762" y="268" text-anchor="middle" fill="#111111" font-size="13" font-weight="600">Tesla V100 &mdash; GV100</text>
-          <text x="762" y="289" text-anchor="middle" fill="#333333" font-size="11">16 GB HBM2</text>
-          <text x="762" y="308" text-anchor="middle" fill="#2f5a94" font-size="10.5" font-family="ui-monospace, monospace">vfio-pci passthrough</text>
+        <!-- drivers -->
+        <rect x="40" y="214" width="555" height="34" rx="7" fill="#ffffff" stroke="#cccccc"/>
+        <text x="317" y="236" text-anchor="middle" fill="#a3401b" font-size="11.5" font-family="ui-monospace, monospace">host: stock amdgpu</text>
+        <rect x="650" y="214" width="250" height="34" rx="7" fill="#ffffff" stroke="#cccccc"/>
+        <text x="775" y="236" text-anchor="middle" fill="#2f5a94" font-size="11.5" font-family="ui-monospace, monospace">host: NVIDIA 610 open, patched</text>
 
-          <!-- llama.cpp RPC pooling layer -->
-          <rect x="330" y="384" width="260" height="46" rx="9" fill="#ffffff" stroke="#7a4bb8"/>
-          <text x="460" y="404" text-anchor="middle" fill="#111111" font-size="12.5" font-weight="600">llama.cpp RPC</text>
-          <text x="460" y="420" text-anchor="middle" fill="#333333" font-size="10.5">pools the CMP + guest V100</text>
-          <path d="M156,310 L156,358 L380,358 L380,382" fill="none" stroke="#3b6aa8" stroke-width="1.5" marker-end="url(#ah)"/>
-          <path d="M762,324 L762,358 L540,358 L540,382" fill="none" stroke="#3b6aa8" stroke-width="1.5" marker-end="url(#ah)"/>
-          <!-- output -->
-          <line x1="590" y1="407" x2="628" y2="407" stroke="#3b6aa8" stroke-width="1.6" marker-end="url(#ah)"/>
-          <rect x="630" y="388" width="200" height="38" rx="19" fill="#f4f4f4" stroke="#2c7a3a"/>
-          <text x="730" y="412" text-anchor="middle" fill="#2c7a3a" font-size="12" font-weight="600">Qwen3 32B &middot; 24 tok/s</text>
-          <text x="730" y="444" text-anchor="middle" fill="#666666" font-size="9.5" font-family="ui-monospace, monospace">with the V100 &middot; Ubuntu 22.04 / Linux 5.15</text>
-        </svg>
-        <figcaption>The host runs the unlocked CMP 40HX on the patched 610 driver and a Radeon VII on ROCm, capped at 200 W. The Radeon VII and the Tesla V100 share a slot: with the V100 in, it lives in a VFIO guest on the closed 580 driver, and llama.cpp pools it with the CMP over RPC to serve Qwen3 32B. An Orange Pi Zero wakes the whole thing over Tailscale.</figcaption>
-      </figure>
+        <line x1="165" y1="248" x2="270" y2="272" stroke="#b8502c" stroke-width="1.5" marker-end="url(#pah-amd)"/>
+        <line x1="470" y1="248" x2="365" y2="272" stroke="#b8502c" stroke-width="1.5" marker-end="url(#pah-amd)"/>
+        <line x1="775" y1="248" x2="775" y2="272" stroke="#3b6aa8" stroke-width="1.5" marker-end="url(#pah)"/>
+
+        <!-- GPUs -->
+        <rect x="190" y="274" width="250" height="68" rx="9" fill="#ffffff" stroke="#b8502c"/>
+        <text x="315" y="298" text-anchor="middle" fill="#111111" font-size="13" font-weight="600">Radeon VII &middot; 16 GB HBM2</text>
+        <text x="315" y="320" text-anchor="middle" fill="#333333" font-size="11">gfx906 &middot; PCIe 3.0 x16 &middot; 200 W cap</text>
+
+        <rect x="650" y="274" width="250" height="68" rx="9" fill="#ffffff" stroke="#3b6aa8"/>
+        <text x="775" y="298" text-anchor="middle" fill="#111111" font-size="13" font-weight="600">CMP 40HX &middot; 8 GB</text>
+        <text x="775" y="320" text-anchor="middle" fill="#333333" font-size="11">Gen2 x16 &middot; BAR1 8 GiB &middot; FP16 unlocked</text>
+
+        <!-- storage -->
+        <rect x="40" y="366" width="400" height="44" rx="9" fill="#ffffff" stroke="#2c7a3a"/>
+        <text x="240" y="386" text-anchor="middle" fill="#2c7a3a" font-size="12" font-weight="600">SanDisk SATA SSD</text>
+        <text x="240" y="402" text-anchor="middle" fill="#333333" font-size="10.5" font-family="ui-monospace, monospace">Proxmox root &middot; /srv/models &rarr; /models (ro)</text>
+
+        <rect x="500" y="366" width="400" height="44" rx="9" fill="#ffffff" stroke="#cccccc" stroke-dasharray="6 4"/>
+        <text x="700" y="386" text-anchor="middle" fill="#666666" font-size="12" font-weight="600">Intel 660p NVMe</text>
+        <text x="700" y="402" text-anchor="middle" fill="#666666" font-size="10.5" font-family="ui-monospace, monospace">Ubuntu, untouched, as a fallback</text>
+      </svg>
+      <figcaption>The current layout, on Proxmox VE 9.2. Containers 101 and 103 share the Radeon VII through the host's amdgpu driver. Container 102 owns the CMP 40HX, and 101 reaches it over RPC when I pool both cards. All three containers mount the models read-only from the SanDisk. An Orange Pi Zero still wakes the box over Tailscale.</figcaption>
+    </figure>
 
     <h2 id="log">Build log</h2>
     <p>Each chapter is a write-up of one change to the machine, in the order it happened.</p>
@@ -210,6 +201,20 @@
           </div>
         </a>
 
+        <a class="card post-card" href="../posts/2026-11-kabangy-proxmox.html">
+          <img src="../assets/cards/kabangy-proxmox.jpg" alt="The X99 box on an open bench with the CMP 40HX and the Radeon VII">
+          <div class="card-body">
+            <h3>Proxmox: One Container per GPU</h3>
+            <p>I moved the box from Ubuntu to Proxmox VE 9.2. The Radeon VII and the unlocked CMP 40HX each run in their own LXC container, and the CMP keeps its Gen2 x16 link and 8 GiB BAR1. Pooled Qwen3 32B over RPC between containers matches bare metal at 20 tok/s.</p>
+            <div class="tags">
+              <span class="tag">Proxmox</span>
+              <span class="tag">LXC</span>
+              <span class="tag">ROCm</span>
+              <span class="tag">llama.cpp</span>
+            </div>
+          </div>
+        </a>
+
         <div class="card">
           <img src="../assets/cards/x99-recreation.jpg" alt="Terminal showing the Ansible roles, a verify warning about the next-boot kernel, and a passing dry run">
           <div class="card-body">
@@ -235,7 +240,7 @@
         <tr><th>Part</th><th>What&rsquo;s in it</th></tr>
         <tr><td>Board</td><td>Huananzhi X99-BD4, AMI Aptio V 5.11 BIOS with <a href="../posts/2026-10-x99-rebar-flashing.html">ReBarDxe inserted</a></td></tr>
         <tr><td>CPU</td><td>Intel Xeon E5-2678 v3 (Haswell-EP, 12 cores)</td></tr>
-        <tr><td>OS</td><td>Ubuntu 24.04, Linux 7.0 (HWE)</td></tr>
+        <tr><td>OS</td><td>Proxmox VE 9.2 on a SATA SSD, kernel 7.0.14-30-pve (pinned); Ubuntu 24.04 kept on the NVMe as a fallback</td></tr>
         <tr><td>Network</td><td>Wi-Fi + Tailscale; powered on by an <a href="../posts/2026-09-wake-on-lan-retrofit.html">Orange Pi Zero relay</a></td></tr>
       </table>
     </div>
@@ -246,12 +251,12 @@
         <tr><th>Slot</th><th>Card</th><th>Driver</th><th>Link</th><th>Notes</th></tr>
         <tr><td>Root port 3</td><td>CMP 40HX (TU106, 8 GB)</td><td>NVIDIA 610.57.04 open, patched by cmpunlocker</td><td>PCIe Gen2 x16, retrained at boot</td><td>FP16 unlocked, 8 GiB BAR1</td></tr>
         <tr><td>Root port 2</td><td>Radeon VII (Vega 20, 16 GB HBM2)</td><td>amdgpu + ROCm 6.3.3</td><td>PCIe 3.0 x16</td><td>capped at 200 W (stock 250 W), 16 GiB BAR0</td></tr>
-        <tr><td>Root port 2 (swap)</td><td>Tesla V100 SXM2 (16 GB HBM2)</td><td>NVIDIA 580 closed, inside a KVM guest</td><td>vfio-pci passthrough</td><td>replaces the Radeon VII for the pooled llama.cpp setup</td></tr>
       </table>
     </div>
+    <p>Previously, a Tesla V100 SXM2 took root port 2 in place of the Radeon VII, passed through with vfio-pci to a KVM guest on the closed 580 driver. That setup is in <a href="../posts/2026-10-v100-vfio-rpc.html">V100 + CMP 40HX: Two Drivers, One Box</a>.</p>
 
     <h3>Rebuilding it</h3>
-    <p>The whole box is described in <a href="https://github.com/jyeh2/X99-Recreation">X99-Recreation</a>, an Ansible playbook that rebuilds it from a fresh Ubuntu install:</p>
+    <p>The Ubuntu install, now the fallback on the NVMe, is described in <a href="https://github.com/jyeh2/X99-Recreation">X99-Recreation</a>, an Ansible playbook that rebuilds it from scratch. The Proxmox host is set up by one script that mirrors the playbook&rsquo;s <code>nvidia_cmp40hx</code> role. The playbook&rsquo;s roles:</p>
     <ul>
       <li><code>base</code>, <code>tailscale</code>: packages, hostname, user groups, Tailscale SSH.</li>
       <li><code>nvidia_cmp40hx</code>: installs the 610.57.04 userspace, pins and holds the driver packages, builds the cmpunlocker modules, and installs the boot units below.</li>
@@ -265,20 +270,22 @@
       <li><code>cmp40hx-gen2-retrain</code> reprobes the driver so the card advertises Gen2, then retrains the link from the root port: 2.5 &rarr; 5 GT/s. It checks the PCI ID first, so it won&rsquo;t touch a different card if the slots change.</li>
       <li><code>cap-cmp40hx</code> locks the CMP&rsquo;s idle clock to 300 MHz (<code>cmp40hx-uncap</code> releases it for inference).</li>
       <li><code>amdgpu-power-cap</code> finds the Radeon VII by PCI ID and sets its cap to 200 W.</li>
+      <li>Only then do the containers start, so container 102 gets a CMP that is already unlocked, at Gen2 x16, with its 8 GiB BAR1. A container can&rsquo;t retrain the link or change clocks, so all of this stays on the host.</li>
     </ol>
     <p>The unlock is volatile and the patched modules are built per kernel, so a kernel hook rebuilds cmpunlocker for every new kernel before it&rsquo;s booted.</p>
 
-    <h3>Key terms for the V100 setup</h3>
+    <h3>Key terms</h3>
     <div class="tags">
-      <span class="tag">IOMMU</span>
-      <span class="tag">VFIO</span>
-      <span class="tag">vfio-pci</span>
-      <span class="tag">GPU passthrough</span>
-      <span class="tag">KVM/QEMU</span>
-      <span class="tag">libvirt</span>
-      <span class="tag">OVMF (UEFI)</span>
-      <span class="tag">Above 4G Decoding</span>
+      <span class="tag">Proxmox VE</span>
+      <span class="tag">LXC (unprivileged)</span>
+      <span class="tag">GPU device nodes in containers</span>
+      <span class="tag">Linux bridge</span>
+      <span class="tag">nftables</span>
       <span class="tag">llama.cpp RPC</span>
+      <span class="tag">kernel pinning + module rebuild hook</span>
+      <span class="tag">Resizable BAR</span>
+      <span class="tag">VFIO / IOMMU</span>
+      <span class="tag">KVM/QEMU</span>
     </div>
     </section>
 

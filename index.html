@@ -29,12 +29,12 @@
           <div class="tags"><span class="tag">Django REST</span><span class="tag">Svelte</span><span class="tag">AWS</span><span class="tag">GitHub Actions</span></div>
         </div>
         <a class="card pin" href="x99/">
-          <span class="num">$200 box</span>
-          <span class="what">an unlocked mining GPU beside a Radeon VII on ROCm; swap in a Tesla V100 and it pools Qwen3 32B at 24 tok/s</span>
+          <span class="num">Qwen3 32B</span>
+          <span class="what">at 20 tok/s, pooled over RPC across an unlocked mining GPU and a Radeon VII, each in its own Proxmox container</span>
           <h3>The X99 Build</h3>
-          <p>One secondhand X99 board turned into a multi-GPU inference server: soldered PCIe lanes, a ReBAR BIOS mod, FP16 unlocked 55&times; on the mining cards, a Radeon VII on ROCm, a V100 passed through to a VFIO guest when it&rsquo;s installed, and the whole box rebuilt from one Ansible playbook.</p>
+          <p>One secondhand X99 board turned into a multi-GPU inference server: soldered PCIe lanes, a ReBAR BIOS mod, and FP16 unlocked 55&times; on the mining cards. It now runs Proxmox VE with one LXC container per GPU: the CMP 40HX on a patched NVIDIA driver and the Radeon VII on ROCm, with the host driver setup mirrored from an Ansible playbook.</p>
           <p class="pin-links">Project page, build log and docs &rarr;</p>
-          <div class="tags"><span class="tag">Linux</span><span class="tag">PCIe</span><span class="tag">ROCm</span><span class="tag">VFIO</span><span class="tag">Ansible</span></div>
+          <div class="tags"><span class="tag">Proxmox</span><span class="tag">LXC</span><span class="tag">PCIe</span><span class="tag">ROCm</span><span class="tag">Ansible</span></div>
         </a>
       </div>
     </section>

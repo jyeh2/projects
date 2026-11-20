@@ -1,0 +1,353 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The X99 Box on Proxmox</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <script src="../assets/theme.js"></script>
+</head>
+
+<body>
+  <div class="container">
+
+    <a href="../x99/">&larr; The X99 Build</a>
+
+    <h1>Moving the X99 Box to Proxmox: One Container per GPU</h1>
+
+    <p class="meta">
+      I migrated kabangy from bare metal Ubuntu to Proxmox VE 9.2. The Radeon VII and the
+      <a href="2026-10-cmp40hx-unlock.html">unlocked CMP 40HX</a> each run in their own LXC container, and llama.cpp RPC still pools them for Qwen3 32B. November 2026.
+    </p>
+
+    <p class="series"><a href="../x99/">X99 build</a> series: <a href="2026-08-200-bucks-inference-machine.html">The build</a> &middot; <a href="2026-09-kvsnap-kv-cache-reuse.html">mistral.rs vs llama.cpp</a> &middot; <a href="2026-09-local-llm-extraction-benchmark.html">Four LLMs compared</a> &middot; <a href="2026-09-wake-on-lan-retrofit.html">Wake on LAN</a> &middot; <a href="2026-10-x99-rebar-flashing.html">ReBar BIOS mod</a> &middot; <a href="2026-10-cmp40hx-unlock.html">CMP 40HX unlock</a> &middot; <a href="2026-10-v100-vfio-rpc.html">V100 + VFIO</a> &middot; <a class="current" href="2026-11-kabangy-proxmox.html">Proxmox</a></p>
+
+    <p class="summary">
+      I moved my X99 inference box from Ubuntu on the NVMe to Proxmox VE 9.2 on a SATA SSD. Each GPU now lives in its own unprivileged
+      LXC container, and the host keeps both drivers. The Radeon VII runs on the stock amdgpu driver, and the CMP 40HX runs on my
+      cmpunlocker-patched NVIDIA driver with its Gen2 x16 link and 8 GiB BAR1 intact. I measured no speed loss in any benchmark, including
+      the RPC hop between containers. Pooled Qwen3 32B still runs at 208 tok/s on prompt and 20 tok/s on generation.
+    </p>
+
+    <div class="highlights">
+      <a class="stat" href="#bench">
+        <span class="num">20.0 &rarr; 20.3 tok/s</span>
+        <span class="what">Qwen3 32B generation pooled over RPC, Ubuntu bare metal vs. Proxmox containers</span>
+      </a>
+      <a class="stat" href="#bench">
+        <span class="num">2,714 tok/s</span>
+        <span class="what">Qwen3 4B prompt processing on the CMP 40HX inside container 102</span>
+      </a>
+      <a class="stat" href="#cmp">
+        <span class="num">Gen2 x16 &middot; 8 GiB</span>
+        <span class="what">CMP 40HX link and BAR1 after the move, the same as on Ubuntu</span>
+      </a>
+      <a class="stat" href="#layout">
+        <span class="num">3 containers</span>
+        <span class="what">Radeon inference, CMP inference, and a dev box that shares the Radeon</span>
+      </a>
+    </div>
+
+    <a href="#img1"><img src="../assets/kabangy-proxmox/rig.jpg" alt="The X99 box on an open bench with the CMP 40HX on the left and the Radeon VII on the right"></a>
+    <a class="lightbox" id="img1" href="#"><img src="../assets/kabangy-proxmox/rig.jpg" alt="The X99 box on an open bench with the CMP 40HX on the left and the Radeon VII on the right"></a>
+
+    <h2 id="layout">Layout</h2>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 940 440" role="img" aria-labelledby="pvediag-title pvediag-desc">
+        <title id="pvediag-title">kabangy on Proxmox</title>
+        <desc id="pvediag-desc">A Proxmox VE 9.2 host runs the stock amdgpu driver for the Radeon VII and the patched NVIDIA 610 open driver for the CMP 40HX. Containers 101 and 103 share the Radeon VII. Container 102 owns the CMP 40HX and runs ggml-rpc-server, which container 101 reaches over a private bridge to pool both cards. All three containers mount the models read-only from the SanDisk SATA SSD. Ubuntu stays untouched on the NVMe as a fallback.</desc>
+        <defs>
+          <marker id="pah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#3b6aa8"/>
+          </marker>
+          <marker id="pah-amd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#b8502c"/>
+          </marker>
+          <marker id="pah-rpc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#7a4bb8"/>
+          </marker>
+        </defs>
+
+        <rect x="20" y="12" width="900" height="416" rx="12" fill="#f4f4f4" stroke="#999999"/>
+        <text x="36" y="34" fill="#111111" font-size="13" font-weight="600">kabangy-pve &middot; Proxmox VE 9.2</text>
+        <text x="36" y="50" fill="#666666" font-size="10.5" font-family="ui-monospace, monospace">kernel 7.0.14-30-pve (pinned) &middot; vmbr1 10.10.10.0/24</text>
+
+        <!-- containers -->
+        <rect x="40" y="66" width="250" height="92" rx="9" fill="#ffffff" stroke="#b8502c"/>
+        <text x="165" y="88" text-anchor="middle" fill="#111111" font-size="13" font-weight="600">101 llm-radeon</text>
+        <text x="165" y="108" text-anchor="middle" fill="#333333" font-size="11">llama.cpp HIP &middot; RPC client</text>
+        <text x="165" y="128" text-anchor="middle" fill="#666666" font-size="10.5" font-family="ui-monospace, monospace">10.10.10.11</text>
+        <text x="165" y="146" text-anchor="middle" fill="#666666" font-size="10.5" font-family="ui-monospace, monospace">/dev/kfd + render node</text>
+
+        <rect x="345" y="66" width="250" height="92" rx="9" fill="#ffffff" stroke="#b8502c"/>
+        <text x="470" y="88" text-anchor="middle" fill="#111111" font-size="13" font-weight="600">103 jobs</text>
+        <text x="470" y="108" text-anchor="middle" fill="#333333" font-size="11">dev box &middot; ROCm 6.3.3</text>
+        <text x="470" y="128" text-anchor="middle" fill="#666666" font-size="10.5" font-family="ui-monospace, monospace">10.10.10.13</text>
+        <text x="470" y="146" text-anchor="middle" fill="#666666" font-size="10.5" font-family="ui-monospace, monospace">shares the Radeon</text>
+
+        <rect x="650" y="66" width="250" height="92" rx="9" fill="#ffffff" stroke="#3b6aa8"/>
+        <text x="775" y="88" text-anchor="middle" fill="#111111" font-size="13" font-weight="600">102 llm-cmp</text>
+        <text x="775" y="108" text-anchor="middle" fill="#333333" font-size="11">llama.cpp CUDA &middot; ggml-rpc-server</text>
+        <text x="775" y="128" text-anchor="middle" fill="#666666" font-size="10.5" font-family="ui-monospace, monospace">10.10.10.12:50052</text>
+        <text x="775" y="146" text-anchor="middle" fill="#666666" font-size="10.5" font-family="ui-monospace, monospace">/dev/nvidia* &middot; nftables</text>
+
+        <!-- RPC link -->
+        <path d="M165,158 L165,180 L775,180 L775,160" fill="none" stroke="#7a4bb8" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#pah-rpc)"/>
+        <text x="470" y="196" text-anchor="middle" fill="#7a4bb8" font-size="10.5" font-family="ui-monospace, monospace">llama.cpp RPC &middot; pooled Qwen3 32B</text>
+
+        <!-- drivers -->
+        <rect x="40" y="214" width="555" height="34" rx="7" fill="#ffffff" stroke="#cccccc"/>
+        <text x="317" y="236" text-anchor="middle" fill="#a3401b" font-size="11.5" font-family="ui-monospace, monospace">host: stock amdgpu</text>
+        <rect x="650" y="214" width="250" height="34" rx="7" fill="#ffffff" stroke="#cccccc"/>
+        <text x="775" y="236" text-anchor="middle" fill="#2f5a94" font-size="11.5" font-family="ui-monospace, monospace">host: NVIDIA 610 open, patched</text>
+
+        <line x1="165" y1="248" x2="270" y2="272" stroke="#b8502c" stroke-width="1.5" marker-end="url(#pah-amd)"/>
+        <line x1="470" y1="248" x2="365" y2="272" stroke="#b8502c" stroke-width="1.5" marker-end="url(#pah-amd)"/>
+        <line x1="775" y1="248" x2="775" y2="272" stroke="#3b6aa8" stroke-width="1.5" marker-end="url(#pah)"/>
+
+        <!-- GPUs -->
+        <rect x="190" y="274" width="250" height="68" rx="9" fill="#ffffff" stroke="#b8502c"/>
+        <text x="315" y="298" text-anchor="middle" fill="#111111" font-size="13" font-weight="600">Radeon VII &middot; 16 GB HBM2</text>
+        <text x="315" y="320" text-anchor="middle" fill="#333333" font-size="11">gfx906 &middot; PCIe 3.0 x16 &middot; 200 W cap</text>
+
+        <rect x="650" y="274" width="250" height="68" rx="9" fill="#ffffff" stroke="#3b6aa8"/>
+        <text x="775" y="298" text-anchor="middle" fill="#111111" font-size="13" font-weight="600">CMP 40HX &middot; 8 GB</text>
+        <text x="775" y="320" text-anchor="middle" fill="#333333" font-size="11">Gen2 x16 &middot; BAR1 8 GiB &middot; FP16 unlocked</text>
+
+        <!-- storage -->
+        <rect x="40" y="366" width="400" height="44" rx="9" fill="#ffffff" stroke="#2c7a3a"/>
+        <text x="240" y="386" text-anchor="middle" fill="#2c7a3a" font-size="12" font-weight="600">SanDisk SATA SSD</text>
+        <text x="240" y="402" text-anchor="middle" fill="#333333" font-size="10.5" font-family="ui-monospace, monospace">Proxmox root &middot; /srv/models &rarr; /models (ro)</text>
+
+        <rect x="500" y="366" width="400" height="44" rx="9" fill="#ffffff" stroke="#cccccc" stroke-dasharray="6 4"/>
+        <text x="700" y="386" text-anchor="middle" fill="#666666" font-size="12" font-weight="600">Intel 660p NVMe</text>
+        <text x="700" y="402" text-anchor="middle" fill="#666666" font-size="10.5" font-family="ui-monospace, monospace">Ubuntu, untouched, as a fallback</text>
+      </svg>
+      <figcaption>Containers 101 and 103 share the Radeon VII through the host's amdgpu driver. Container 102 owns the CMP 40HX, and 101 reaches it over RPC when I pool both cards. All three containers mount the models read-only from the SanDisk.</figcaption>
+    </figure>
+
+    <p>
+      I pass GPUs into the containers as device nodes rather than through VFIO. Containers 101 and 103 get <code>/dev/kfd</code> and the
+      Radeon's render node, and container 102 gets the four <code>/dev/nvidia*</code> nodes. The containers sit on a private bridge, and
+      nftables in 102 only lets 101 and 103 reach the RPC port. That matters because <code>ggml-rpc-server</code> has no authentication.
+    </p>
+
+    <div class="table-wrap"><table class="data">
+      <tr><th>Guest</th><th>CPU / RAM / disk</th><th>GPU</th><th>Inside</th></tr>
+      <tr><td>101 llm-radeon</td><td>6 cores / 5 GB / 80 GB</td><td>Radeon VII</td><td>ROCm 6.3.3, llama.cpp <code>f498f86</code> (HIP, RPC client)</td></tr>
+      <tr><td>102 llm-cmp</td><td>6 cores / 3 GB / 40 GB</td><td>CMP 40HX</td><td>610.57.04 userspace, CUDA 13.0, llama.cpp <code>f498f86</code> (CUDA, <code>ggml-rpc-server</code>)</td></tr>
+      <tr><td>103 jobs</td><td>2 cores / 4 GB / 64 GB</td><td>Radeon VII, shared with 101</td><td>My job pipeline and dev work, ROCm 6.3.3</td></tr>
+    </table></div>
+
+    <p>
+      I took this screenshot of the Proxmox web UI on the first day, before I created 101 and 102:
+    </p>
+
+    <a href="#img2"><img src="../assets/kabangy-proxmox/proxmox-ui.png" alt="Proxmox VE 9.2 web UI on kabangy-pve with container 103 running"></a>
+    <a class="lightbox" id="img2" href="#"><img src="../assets/kabangy-proxmox/proxmox-ui.png" alt="Proxmox VE 9.2 web UI on kabangy-pve with container 103 running"></a>
+
+    <h2 id="bench">Benchmarks: Ubuntu vs. Proxmox</h2>
+
+    <p>
+      I ran every test with llama.cpp <code>f498f86</code> and <code>-ngl 99 -fa 1 -lm dio -p 512 -n 128</code>, with the CMP clock uncapped.
+      Each Proxmox number matches my bare metal Ubuntu number within noise.
+    </p>
+
+    <div class="table-wrap"><table class="data">
+      <tr><th>Run</th><th>Ubuntu, bare metal (tok/s)</th><th>Proxmox, containers (tok/s)</th></tr>
+      <tr><td>Radeon VII alone, Qwen3 4B, pp512</td><td>1,386 &plusmn; 47</td><td>1,373 &plusmn; 58</td></tr>
+      <tr><td>Radeon VII alone, Qwen3 4B, tg128</td><td>105.4</td><td>106.8</td></tr>
+      <tr><td>CMP 40HX alone, Qwen3 4B, pp512</td><td>~2,701</td><td>2,714 &plusmn; 80</td></tr>
+      <tr><td>CMP 40HX alone, Qwen3 4B, tg128</td><td>~110.1</td><td>110.1</td></tr>
+      <tr><td>Pooled over RPC, Qwen3 32B <code>-ts 4/20</code>, pp512</td><td>208.19 &plusmn; 0.52</td><td>208.08 &plusmn; 0.91</td></tr>
+      <tr><td>Pooled over RPC, Qwen3 32B <code>-ts 4/20</code>, tg128</td><td>19.97 &plusmn; 0.02</td><td>20.34 &plusmn; 0.01</td></tr>
+    </table></div>
+
+    <p>
+      I ran the pooled bench from the host with 101 driving the Radeon and 102 serving the CMP:
+    </p>
+
+    <a href="#img3"><img src="../assets/kabangy-proxmox/pooled-bench.jpg" alt="llama-bench in container 101 pooling Qwen3 32B across the Radeon VII and the CMP 40HX over RPC: 208.08 pp512 and 20.34 tg128"></a>
+    <a class="lightbox" id="img3" href="#"><img src="../assets/kabangy-proxmox/pooled-bench.jpg" alt="llama-bench in container 101 pooling Qwen3 32B across the Radeon VII and the CMP 40HX over RPC: 208.08 pp512 and 20.34 tg128"></a>
+
+    <p>
+      I captured the RPC server in 102 during that run. llama.cpp prints that warning for any address other than localhost, and my
+      firewall rule is why I can accept it here:
+    </p>
+
+    <a href="#img4"><img src="../assets/kabangy-proxmox/rpc-server.png" alt="ggml-rpc-server on 10.10.10.12:50052 offering the CMP 40HX and accepting a client connection"></a>
+    <a class="lightbox" id="img4" href="#"><img src="../assets/kabangy-proxmox/rpc-server.png" alt="ggml-rpc-server on 10.10.10.12:50052 offering the CMP 40HX and accepting a client connection"></a>
+
+    <h3>Load times and storage</h3>
+
+    <p>
+      Proxmox lives on an older SanDisk Ultra II SATA SSD, and I kept the NVMe untouched with Ubuntu on it. I timed a cold read of the
+      32B file (19.76 GB) with <code>time cat</code> after dropping the page cache:
+    </p>
+
+    <div class="table-wrap"><table class="data">
+      <tr><th>Where the file is read from</th><th>Time</th><th>Speed</th></tr>
+      <tr><td>NVMe (Intel 660p), from Ubuntu</td><td>17.5 s</td><td>~1.13 GB/s</td></tr>
+      <tr><td>SanDisk Ultra II SATA, from Proxmox</td><td>36.1 s</td><td>~548 MB/s</td></tr>
+      <tr><td>NVMe mounted read-only, from Proxmox</td><td>17.0 s</td><td>~1.16 GB/s</td></tr>
+    </table></div>
+
+    <p>
+      The containers read models from the SanDisk copy, so a cold load takes about 18 s longer than it did on Ubuntu. Generation speed
+      doesn't change, because the weights live in VRAM once they load. I tested the NVMe as a read-only mount from Proxmox and then
+      switched it back off, so the Ubuntu install stays a clean fallback:
+    </p>
+
+    <a href="#img5"><img src="../assets/kabangy-proxmox/nvme-read.png" alt="time cat of the Qwen3 32B file from the read-only NVMe mount taking 17.0 seconds"></a>
+    <a class="lightbox" id="img5" href="#"><img src="../assets/kabangy-proxmox/nvme-read.png" alt="time cat of the Qwen3 32B file from the read-only NVMe mount taking 17.0 seconds"></a>
+
+    <h3>Tuning the split</h3>
+
+    <p>
+      I set the Ubuntu baseline before the migration. The Radeon ran the main llama.cpp process (HIP build), and the CMP served its share
+      through <code>ggml-rpc-server</code> (CUDA build) over localhost. I swept the split with Qwen3 32B Q4_K_M. The RPC device comes first,
+      so <code>4/20</code> means 4 parts on the CMP and 20 on the Radeon:
+    </p>
+
+    <div class="table-wrap"><table class="data">
+      <tr><th>Split (CMP/Radeon)</th><th>pp512 (tok/s)</th><th>tg128 (tok/s)</th></tr>
+      <tr><td>3/21</td><td colspan="2">Doesn't fit: the 349 MiB compute buffer can't be allocated on the Radeon</td></tr>
+      <tr><td><strong>4/20</strong></td><td><strong>208.19 &plusmn; 0.52</strong></td><td><strong>19.97 &plusmn; 0.02</strong></td></tr>
+      <tr><td>5/19</td><td>212.86 &plusmn; 1.15</td><td>19.78 &plusmn; 0.02</td></tr>
+      <tr><td>6/18</td><td>218.98 &plusmn; 1.97</td><td>19.58 &plusmn; 0.05</td></tr>
+      <tr><td>8/16 (first run, mmap)</td><td>212.67 &plusmn; 5.64</td><td>18.22 &plusmn; 0.18</td></tr>
+    </table></div>
+
+    <p>
+      I got 10% more generation when I moved layers to the faster card. I had estimated 15 to 20% from memory bandwidth. The RPC round
+      trip, kernel launches and syncing cost the same time at any split, so the gain stayed smaller. For <code>llama-server</code> I use
+      <code>5,19</code> to leave room for 8k of context. My earlier <a href="2026-10-v100-vfio-rpc.html">V100 and CMP pair</a> reached 478 and
+      24.4 tok/s, and this pair runs at 0.44&times; of that on prompt and 0.82&times; on generation.
+    </p>
+
+    <p>
+      I also had to change how I load the model. My box has 15 GB of RAM and the 32B file is 19.8 GB, so mmap loading thrashed the page cache.
+      One <code>-ts 6/18</code> load ran for over 7 minutes and read 27 GB before I stopped it. I switched to <code>-lm dio</code>, and it reads
+      straight from disk into a small buffer. The same load plus a 16-token test then took 37.9 s. In the containers this matters even more,
+      because their page cache counts against their memory limit.
+    </p>
+
+    <h2 id="cmp">Keeping the CMP 40HX unlock in a container</h2>
+
+    <p>
+      I chose containers over VMs because of how the patched driver works. The driver reaches Gen2 by retraining through the card's root
+      port (<code>00:03.0</code>), and it sets up the 8 GiB BAR1 at startup. A VM would only give it a virtual root port, and a guest can't
+      resize a passed-through BAR. I kept the driver on the host, so my <a href="2026-10-cmp40hx-unlock.html">Ubuntu setup</a> carried over
+      unchanged. In exchange, I pin the kernel and rebuild the module through a hook.
+    </p>
+
+    <p>
+      I set up the host with one script that mirrors the <code>nvidia_cmp40hx</code> role in my
+      <a href="https://github.com/jyeh2/X99-Recreation">Ansible playbook</a>:
+    </p>
+
+    <ul>
+      <li>I install the NVIDIA 610.57.04 userspace and GSP firmware from the <code>.run</code> with <code>--no-kernel-modules</code>, and I pin apt so Debian's driver packages can't replace it.</li>
+      <li>cmpunlocker's <code>install.sh --no-download</code> builds the patched modules into <code>/lib/modules/7.0.14-30-pve/updates/cmpunlocker/</code>.</li>
+      <li>A kernel hook gives each new kernel the patched modules before it boots.</li>
+      <li>I ported the Gen2 retrain, the driver reprobe and the 300 MHz idle cap from Ubuntu, and they start before the guests.</li>
+    </ul>
+
+    <p>
+      I checked the card after a cold boot. The compute unlock was active, and the driver's own retrain failed with status 1101 as it
+      always does on X99. My retrain service then brought the link to Gen2 x16:
+    </p>
+
+    <pre><code>|   0  NVIDIA CMP 40HX                On  |   00000000:06:00.0 Off |                  N/A |
+| 36%   29C    P8             12W /  184W |       0MiB /   8192MiB |      0%      Default |
+
+driver reported: CMP40_PCIE_GEN2_V2: RETRAIN_FAIL status=1101; link at 2.5 GT/s PCIe x16; retraining from root port 0000:00:03.0 (mode=masked)
+retrain OK: GPU link 5.0 GT/s PCIe x16, root port 5.0 GT/s PCIe
+
+    BAR1 Memory Usage
+        Total                                          : 8192 MiB</code></pre>
+
+    <p>
+      Container 102 runs Ubuntu 24.04 with the 610.57.04 userspace but no kernel module, plus CUDA 13.0 and llama.cpp built for sm_75 with RPC.
+      A container can't change GPU clocks, so I run <code>cmp40hx-uncap</code> and <code>cmp40hx-cap</code> on the host. This screenshot shows
+      the end of the container build and my first run on the CMP alone. The broadcast at the bottom is my cap script locking the clock back
+      at 300 MHz:
+    </p>
+
+    <a href="#img6"><img src="../assets/kabangy-proxmox/cmp-build.jpg" alt="Container 102 finishing its llama.cpp build and running Qwen3 4B on the CMP 40HX at 2,714 tok/s prompt and 110.13 tok/s generation"></a>
+    <a class="lightbox" id="img6" href="#"><img src="../assets/kabangy-proxmox/cmp-build.jpg" alt="Container 102 finishing its llama.cpp build and running Qwen3 4B on the CMP 40HX at 2,714 tok/s prompt and 110.13 tok/s generation"></a>
+
+    <h2>Running it</h2>
+
+    <p>
+      I don't load any model at boot. I start the RPC server and the model by hand from two shells on the host, and I uncap the CMP first so it doesn't run at 300 MHz:
+    </p>
+
+    <pre><code># shell 1: leave running
+cmp40hx-uncap
+pct exec 102 -- /opt/llama.cpp/build/bin/ggml-rpc-server -H 10.10.10.12 -p 50052
+
+# shell 2: benchmark (or llama-server with the same --rpc)
+pct exec 101 -- /opt/llama.cpp/build/bin/llama-bench -m /models/qwen3-32b/Qwen3-32B-Q4_K_M.gguf \
+  --rpc 10.10.10.12:50052 -ngl 99 -fa 1 -lm dio -ts 4/20 -p 512 -n 128 -r 3
+
+# afterwards: Ctrl+C in shell 1, then
+cmp40hx-cap</code></pre>
+
+    <p>
+      I check the unlocks with a few commands after any kernel or driver change:
+    </p>
+
+    <pre><code>pct exec 102 -- nft list ruleset                                # only table inet rpcguard
+nvidia-smi -q | grep -A3 BAR1                                  # Total 8192 MiB
+cat /sys/bus/pci/devices/0000:06:00.0/current_link_speed       # 5.0 GT/s PCIe
+journalctl -b -t cmp40hx-gen2-retrain -o cat                   # retrain OK</code></pre>
+
+    <h2>BIOS and recovery</h2>
+
+    <p>
+      Both GPUs and the Radeon's 16 GB BAR depend on three BIOS settings on the X99-BD4. I check these first whenever the board resets itself:
+    </p>
+
+    <div class="table-wrap"><table class="data">
+      <tr><th>Setting</th><th>Value</th></tr>
+      <tr><td>Above 4G Decoding</td><td>Enabled</td></tr>
+      <tr><td>CSM</td><td>Disabled (I set Video to UEFI first, save, re-enter, then turn CSM off)</td></tr>
+      <tr><td>ReBarState, read by the <a href="2026-10-x99-rebar-flashing.html">ReBarDxe mod</a></td><td><code>0x20</code> (unlimited)</td></tr>
+    </table></div>
+
+    <p>
+      A Radeon BAR of 256 MB means the mod's ReBarState setting was cleared. I restore it from Linux and check it after the next boot:
+    </p>
+
+    <pre><code>printf '\x07\x00\x00\x00\x20' | sudo tee /sys/firmware/efi/efivars/ReBarState-a3c5b77a-c88f-4a93-bf1c-4a92a32c65ce > /dev/null
+journalctl -k -b | grep 'BAR='          # want: VRAM RAM=16368M, BAR=16384M</code></pre>
+
+    <p>
+      An unclean shutdown can leave GRUB at a <code>grub&gt;</code> prompt, and I then boot the pinned kernel by hand. After that I finish
+      any interrupted upgrade and rebuild the menu:
+    </p>
+
+    <pre><code>set root=(lvm/pve-root)
+linux /boot/vmlinuz-7.0.14-30-pve root=/dev/mapper/pve-root ro
+initrd /boot/initrd.img-7.0.14-30-pve
+boot
+
+dpkg --configure -a
+apt-get -f install
+update-initramfs -u -k all
+update-grub</code></pre>
+
+    <h2>If you're doing this yourself</h2>
+
+    <p>
+      A container is the easier path when the host driver does something a VM can't, like retraining a physical root port or resizing a BAR.
+      Build llama.cpp at the same commit in every container that talks RPC. Load large models with <code>-lm dio</code>, since a container's
+      page cache counts against its memory limit. And keep the RPC port on a private bridge behind a firewall rule, because the server has no
+      authentication at all.
+    </p>
+
+  </div>
+</body>
+</html>
